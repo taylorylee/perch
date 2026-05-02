@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dwell — Work & Study</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:    #f0ece0;
+  --paper-2:  #e8e2d4;
+  --paper-3:  #ddd7c8;
+  --ink:      #1e1a14;
+  --ink-2:    #3d3528;
+  --ink-3:    #6b5f4e;
+  --ink-4:    #9c8e7c;
+  --forest:   #2e5c3e;
+  --ember:    #8b2a1a;
+  --gold:     #9a7c3f;
+  --slate:    #3a4f6b;
+  --plum:     #5c3d6b;
+  --teal:     #2e6b6b;
+  --border:   rgba(30,26,20,.12);
+  --shadow:   rgba(30,26,20,.18);
+
+  /* space type colors */
+  --c-library:  #3a4f6b;
+  --c-cafe:     #7a4a2a;
+  --c-cowork:   #2e5c3e;
+  --c-campus:   #5c3d6b;
+  --c-quiet:    #4a6b5a;
+  --c-studio:   #6b4a2e;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--ink);
+  font-family: 'DM Mono', monospace;
+  color: var(--ink);
+  overflow: hidden;
+  width: 100vw;
+  height: 100dvh;
+  user-select: none;
+}
+
+/* ── MAP BACKGROUND ──────────────────────────────── */
+#map-wrap {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+#map-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Cartographic grid lines */
+.grid-line { stroke: var(--ink); stroke-opacity: .06; }
+.major-road { stroke: var(--paper-3); stroke-opacity: .9; }
+.minor-road { stroke: var(--paper-3); stroke-opacity: .55; }
+.block { fill: var(--paper-2); stroke: none; }
+.water { fill: #ccd9e8; stroke: none; }
+.park  { fill: #d4e0d0; stroke: none; }
+.label { fill: var(--ink-4); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .04em; text-anchor: middle; }
+.district-label { fill: var(--ink-3); font-family: 'EB Garamond', serif; font-style: italic; font-size: 11px; letter-spacing: .06em; text-anchor: middle; opacity: .7; }
+
+/* ── PINS LAYER ──────────────────────────────────── */
+#pins-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: all;
+  cursor: pointer;
+  transition: transform .15s ease, filter .15s ease;
+  z-index: 10;
+}
+.pin:hover, .pin.active {
+  transform: translate(-50%, -100%) scale(1.18);
+  filter: drop-shadow(0 4px 12px rgba(30,26,20,.35));
+  z-index: 50;
+}
+
+.pin-body {
+  width: 30px;
+  height: 38px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-drop {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255,255,255,.3);
+  box-shadow: 1px 2px 8px rgba(30,26,20,.28);
+  position: relative;
+}
+.pin-drop::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50% 50% 50% 0;
+  background: rgba(255,255,255,.15);
+}
+
+.pin-icon {
+  transform: rotate(45deg);
+  font-size: 13px;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-stem {
+  width: 2px;
+  height: 10px;
+  background: currentColor;
+  opacity: .45;
+  margin: 0 auto;
+  border-radius: 0 0 2px 2px;
+}
+
+/* Type colors */
+.pin[data-type="library"]  .pin-drop { background: linear-gradient(135deg, #4a5f7b, #2e3f5a); color: #b8c8e0; }
+.pin[data-type="library"]  .pin-stem { color: #2e3f5a; }
+.pin[data-type="cafe"]     .pin-drop { background: linear-gradient(135deg, #8a5a38, #5e3a20); color: #f0d8b8; }
+.pin[data-type="cafe"]     .pin-stem { color: #5e3a20; }
+.pin[data-type="cowork"]   .pin-drop { background: linear-gradient(135deg, #3e6c4e, #254a32); color: #b8d8c0; }
+.pin[data-type="cowork"]   .pin-stem { color: #254a32; }
+.pin[data-type="campus"]   .pin-drop { background: linear-gradient(135deg, #6c4d7b, #462e5a); color: #d8c0e8; }
+.pin[data-type="campus"]   .pin-stem { color: #462e5a; }
+.pin[data-type="quiet"]    .pin-drop { background: linear-gradient(135deg, #5a7a6a, #3a5848); color: #c0d8d0; }
+.pin[data-type="quiet"]    .pin-stem { color: #3a5848; }
+.pin[data-type="studio"]   .pin-drop { background: linear-gradient(135deg, #7a5a3a, #5a3a20); color: #e0c8a8; }
+.pin[data-type="studio"]   .pin-stem { color: #5a3a20; }
+
+/* Density indicator ring */
+.pin-ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: .2;
+  animation: pulse-ring 3s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1); opacity: .2; }
+  50%       { transform: scale(1.12); opacity: .08; }
+}
+
+.pin[data-density="high"] .pin-ring { opacity: .3; }
+.pin[data-density="low"]  .pin-ring { display: none; }
+
+/* Occupancy dot */
+.pin-occ {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--paper);
+}
+.occ-low    { background: #4a8c5a; }
+.occ-medium { background: #b88c3a; }
+.occ-high   { background: #8b3a2a; }
+
+/* ── HEADER ──────────────────────────────────────── */
+#header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 14px 16px 10px;
+  background: linear-gradient(180deg, rgba(240,236,224,.96) 70%, rgba(240,236,224,0) 100%);
+  backdrop-filter: blur(4px);
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wordmark {
+  font-family: 'Spectral', serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 22px;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.wordmark span { color: var(--forest); }
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--ink-4);
+  font-size: 14px;
+  pointer-events: none;
+}
+.search-in {
+  width: 100%;
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px 7px 30px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+}
+.search-in::placeholder { color: var(--ink-4); }
+.search-in:focus { border-color: rgba(30,26,20,.3); }
+
+.ar-btn {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .05em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.ar-btn:hover { background: var(--ink-2); }
+
+/* ── FILTER STRIP ────────────────────────────────── */
+#filters {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 0 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#filters::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.5);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.chip.on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.chip-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .6;
+}
+.chip.on .chip-dot { opacity: .8; }
+
+/* ── BOTTOM SHEET ────────────────────────────────── */
+#sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 200;
+  background: var(--paper);
+  border-radius: 16px 16px 0 0;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 40px rgba(30,26,20,.12);
+  max-height: 82dvh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(100% - 56px));
+  transition: transform .32s cubic-bezier(.32,.72,0,1);
+}
+#sheet.peek { transform: translateY(calc(100% - 56px)); }
+#sheet.half { transform: translateY(calc(100% - 52dvh)); }
+#sheet.full { transform: translateY(0); }
+
+.sheet-handle-wrap {
+  padding: 10px 0 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--ink-4);
+  border-radius: 2px;
+  opacity: .35;
+}
+.sheet-count {
+  font-size: 10px;
+  color: var(--ink-4);
+  letter-spacing: .06em;
+}
+
+.sheet-detail {
+  flex-shrink: 0;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: none;
+}
+.sheet-detail.visible { display: block; }
+
+.detail-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  margin-bottom: 8px;
+}
+.detail-name {
+  font-family: 'Spectral', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.detail-address {
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+  letter-spacing: .03em;
+}
+.detail-desc {
+  font-family: 'EB Garamond', serif;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.detail-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.meta-item {
+  background: var(--paper-2);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.meta-label {
+  font-size: 8px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 3px;
+}
+.meta-value {
+  font-size: 11px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.detail-tag {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: .04em;
+}
+
+.occ-bar-wrap { margin-bottom: 12px; }
+.occ-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--ink-4);
+  margin-bottom: 5px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.occ-bar-track {
+  height: 4px;
+  background: var(--paper-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.occ-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .6s ease;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+}
+.action-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.action-btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.sheet-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0 env(safe-area-inset-bottom, 0);
+  scrollbar-width: thin;
+  scrollbar-color: var(--paper-3) transparent;
+}
+
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .12s;
+}
+.list-item:hover, .list-item.active { background: var(--paper-2); }
+
+.list-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.list-body { flex: 1; min-width: 0; }
+.list-name {
+  font-family: 'Spectral', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-sub {
+  font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: .04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.list-occ {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--paper);
+  letter-spacing: .04em;
+}
+.list-noise {
+  font-size: 9px;
+  color: var(--ink-4);
+}
+
+/* ── LEGEND ──────────────────────────────────────── */
+#legend {
+  position: absolute;
+  top: 100px;
+  right: 16px;
+  z-index: 100;
+  background: rgba(240,236,224,.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 16px var(--shadow);
+  backdrop-filter: blur(8px);
+  min-width: 130px;
+  display: none;
+}
+#legend.visible { display: block; }
+
+.legend-title {
+  font-size: 8px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 8px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-label { font-size: 10px; color: var(--ink-2); }
+
+/* ── TRAY BUTTONS ────────────────────────────────── */
+#tray {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 150;
+  padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: linear-gradient(0deg, rgba(240,236,224,.97) 70%, transparent 100%);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+#sheet.half ~ #tray,
+#sheet.full ~ #tray { display: none; }
+
+.tray-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background .12s;
+  pointer-events: all;
+}
+.tray-btn:hover { background: var(--paper-2); }
+.tray-btn .ic {
+  font-size: 18px;
+  line-height: 1;
+}
+.tray-btn span:last-child {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: .04em;
+}
+
+.legend-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background .12s;
+  pointer-events: all;
+}
+.legend-btn:hover { background: var(--paper-2); }
+.legend-btn .ic { font-size: 18px; line-height: 1; }
+.legend-btn span:last-child {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: .04em;
+}
+
+/* ── TOOLTIP ─────────────────────────────────────── */
+.pin-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 200;
+  letter-spacing: .03em;
+  min-width: 120px;
+  text-align: center;
+}
+.pin-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+.pin:hover .pin-tooltip { opacity: 1; }
+
+/* ── TOAST ───────────────────────────────────────── */
+#toast {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 11px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 999;
+  transition: opacity .2s, transform .2s;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── ME DOT ──────────────────────────────────────── */
+.me {
+  position: absolute;
+  width: 14px; height: 14px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+}
+.me-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: rgba(46,92,62,.15);
+  animation: me-pulse 2.5s ease-in-out infinite;
+}
+.me-dot {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--forest);
+  border: 2px solid var(--paper);
+  box-shadow: 0 1px 6px rgba(30,26,20,.3);
+}
+@keyframes me-pulse {
+  0%, 100% { transform: scale(1); opacity: .4; }
+  50% { transform: scale(1.6); opacity: .15; }
+}
+</style>
+</head>
+<body>
+
+<!-- MAP -->
+<div id="map-wrap">
+  <svg id="map-svg" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <!-- city blocks (SF-inspired grid) -->
+    <rect class="block" x="0" y="0" width="400" height="700"/>
+
+    <!-- parks -->
+    <rect class="park" x="20" y="80" width="60" height="55" rx="3"/>
+    <rect class="park" x="260" y="120" width="90" height="70" rx="3"/>
+    <rect class="park" x="140" y="380" width="45" height="40" rx="3"/>
+    <rect class="park" x="310" y="460" width="55" height="65" rx="3"/>
+
+    <!-- water suggestion -->
+    <rect class="water" x="330" y="0" width="70" height="200" rx="2"/>
+    <path class="water" d="M0,640 Q60,620 120,645 T240,635 T400,640 L400,700 L0,700 Z"/>
+
+    <!-- blocks -->
+    <rect class="block" x="18" y="148" width="52" height="30" rx="1"/>
+    <rect class="block" x="80" y="148" width="65" height="30" rx="1"/>
+    <rect class="block" x="155" y="148" width="55" height="30" rx="1"/>
+    <rect class="block" x="220" y="148" width="30" height="30" rx="1"/>
+    <rect class="block" x="18" y="190" width="52" height="38" rx="1"/>
+    <rect class="block" x="80" y="190" width="65" height="38" rx="1"/>
+    <rect class="block" x="155" y="190" width="55" height="38" rx="1"/>
+    <rect class="block" x="220" y="190" width="30" height="38" rx="1"/>
+    <rect class="block" x="260" y="205" width="50" height="38" rx="1"/>
+    <rect class="block" x="18" y="245" width="52" height="42" rx="1"/>
+    <rect class="block" x="80" y="245" width="65" height="42" rx="1"/>
+    <rect class="block" x="155" y="245" width="55" height="42" rx="1"/>
+    <rect class="block" x="220" y="245" width="30" height="42" rx="1"/>
+    <rect class="block" x="260" y="255" width="50" height="42" rx="1"/>
+    <rect class="block" x="18" y="300" width="52" height="35" rx="1"/>
+    <rect class="block" x="80" y="300" width="65" height="35" rx="1"/>
+    <rect class="block" x="155" y="300" width="55" height="35" rx="1"/>
+    <rect class="block" x="260" y="310" width="50" height="35" rx="1"/>
+    <rect class="block" x="18" y="350" width="52" height="25" rx="1"/>
+    <rect class="block" x="80" y="350" width="65" height="25" rx="1"/>
+    <rect class="block" x="200" y="350" width="50" height="25" rx="1"/>
+    <rect class="block" x="260" y="355" width="50" height="25" rx="1"/>
+    <rect class="block" x="18" y="430" width="52" height="40" rx="1"/>
+    <rect class="block" x="80" y="430" width="65" height="40" rx="1"/>
+    <rect class="block" x="155" y="430" width="55" height="40" rx="1"/>
+    <rect class="block" x="220" y="430" width="30" height="40" rx="1"/>
+    <rect class="block" x="18" y="490" width="52" height="38" rx="1"/>
+    <rect class="block" x="80" y="490" width="65" height="38" rx="1"/>
+    <rect class="block" x="155" y="490" width="55" height="38" rx="1"/>
+    <rect class="block" x="220" y="490" width="30" height="38" rx="1"/>
+    <rect class="block" x="18" y="550" width="52" height="38" rx="1"/>
+    <rect class="block" x="80" y="550" width="65" height="38" rx="1"/>
+    <rect class="block" x="155" y="550" width="55" height="38" rx="1"/>
+
+    <!-- major roads -->
+    <line class="major-road" x1="0" y1="145" x2="330" y2="145" stroke-width="8"/>
+    <line class="major-road" x1="0" y1="240" x2="280" y2="240" stroke-width="6"/>
+    <line class="major-road" x1="0" y1="340" x2="310" y2="340" stroke-width="6"/>
+    <line class="major-road" x1="0" y1="425" x2="320" y2="425" stroke-width="5"/>
+    <line class="major-road" x1="0" y1="535" x2="320" y2="535" stroke-width="5"/>
+    <line class="major-road" x1="75" y1="140" x2="75" y2="700" stroke-width="6"/>
+    <line class="major-road" x1="150" y1="100" x2="150" y2="700" stroke-width="5"/>
+    <line class="major-road" x1="255" y1="120" x2="255" y2="600" stroke-width="5"/>
+
+    <!-- minor roads -->
+    <line class="minor-road" x1="0" y1="185" x2="260" y2="185" stroke-width="3"/>
+    <line class="minor-road" x1="0" y1="290" x2="260" y2="290" stroke-width="3"/>
+    <line class="minor-road" x1="0" y1="380" x2="320" y2="380" stroke-width="3"/>
+    <line class="minor-road" x1="0" y1="480" x2="260" y2="480" stroke-width="3"/>
+    <line class="minor-road" x1="0" y1="580" x2="260" y2="580" stroke-width="3"/>
+    <line class="minor-road" x1="18" y1="140" x2="18" y2="640" stroke-width="2.5"/>
+    <line class="minor-road" x1="110" y1="140" x2="110" y2="640" stroke-width="2.5"/>
+    <line class="minor-road" x1="210" y1="140" x2="210" y2="600" stroke-width="2.5"/>
+    <line class="minor-road" x1="305" y1="200" x2="305" y2="540" stroke-width="2.5"/>
+
+    <!-- grid overlay -->
+    <line class="grid-line" x1="0" y1="50" x2="400" y2="50" stroke-width="1"/>
+    <line class="grid-line" x1="0" y1="630" x2="400" y2="630" stroke-width="1"/>
+    <line class="grid-line" x1="40" y1="0" x2="40" y2="700" stroke-width="1"/>
+    <line class="grid-line" x1="360" y1="0" x2="360" y2="700" stroke-width="1"/>
+
+    <!-- street labels -->
+    <text class="label" x="37" y="141" transform="rotate(-90, 37, 141)" font-size="7">DIVISADERO</text>
+    <text class="label" x="113" y="141" transform="rotate(-90, 113, 141)" font-size="7">FILLMORE</text>
+    <text class="label" x="213" y="141" transform="rotate(-90, 213, 141)" font-size="7">OCTAVIA</text>
+    <text class="label" x="258" y="141" transform="rotate(-90, 258, 141)" font-size="7">GOUGH</text>
+    <text class="label" x="100" y="242" font-size="7">FELL ST</text>
+    <text class="label" x="100" y="342" font-size="7">GROVE ST</text>
+    <text class="label" x="100" y="427" font-size="7">HAYES ST</text>
+
+    <!-- district labels -->
+    <text class="district-label" x="130" y="95" font-size="10">The Panhandle</text>
+    <text class="district-label" x="290" y="165" font-size="10">Alamo Square</text>
+    <text class="district-label" x="100" y="460" font-size="10">Hayes Valley</text>
+    <text class="district-label" x="40" y="340" font-size="9">NoPa</text>
+    <text class="district-label" x="195" y="570" font-size="9">Civic Center</text>
+    <text class="district-label" x="55" y="590" font-size="9">Lower Haight</text>
+  </svg>
+
+  <!-- current location -->
+  <div class="me" style="left:38%;top:55%">
+    <div class="me-ring"></div>
+    <div class="me-dot"></div>
+  </div>
+
+  <div id="pins-layer"></div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="header-row">
+    <div class="wordmark">d<span>w</span>ell</div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-in" type="text" placeholder="Search spaces…" id="search-in">
+    </div>
+    <button class="ar-btn" onclick="showToast('AR mode coming soon')">Live AR</button>
+  </div>
+  <div id="filters">
+    <div class="chip on" data-f="all"><span class="chip-dot"></span>All spaces</div>
+    <div class="chip" data-f="library" style="--dot:#4a5f7b"><span class="chip-dot" style="background:#4a5f7b"></span>Library</div>
+    <div class="chip" data-f="cafe" style="--dot:#8a5a38"><span class="chip-dot" style="background:#8a5a38"></span>Café</div>
+    <div class="chip" data-f="cowork" style="--dot:#3e6c4e"><span class="chip-dot" style="background:#3e6c4e"></span>Cowork</div>
+    <div class="chip" data-f="campus" style="--dot:#6c4d7b"><span class="chip-dot" style="background:#6c4d7b"></span>Campus</div>
+    <div class="chip" data-f="quiet" style="--dot:#5a7a6a"><span class="chip-dot" style="background:#5a7a6a"></span>Quiet Space</div>
+    <div class="chip" data-f="studio" style="--dot:#7a5a3a"><span class="chip-dot" style="background:#7a5a3a"></span>Studio</div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div id="legend">
+  <div class="legend-title">Space types</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#4a5f7b"></div><div class="legend-label">Library / Archive</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#8a5a38"></div><div class="legend-label">Café / Study Café</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#3e6c4e"></div><div class="legend-label">Coworking Space</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#6c4d7b"></div><div class="legend-label">Campus / University</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#5a7a6a"></div><div class="legend-label">Quiet / Reading Room</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#7a5a3a"></div><div class="legend-label">Studio / Maker Space</div></div>
+  <div style="border-top:1px solid var(--border);margin:8px 0 6px"></div>
+  <div class="legend-title">Occupancy</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#4a8c5a"></div><div class="legend-label">Usually quiet</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#b88c3a"></div><div class="legend-label">Moderate</div></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#8b3a2a"></div><div class="legend-label">Often busy</div></div>
+</div>
+
+<!-- SHEET -->
+<div id="sheet" class="peek">
+  <div class="sheet-handle-wrap" id="sheet-handle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-count" id="sheet-count">24 work & study spaces</div>
+  </div>
+
+  <!-- space detail panel -->
+  <div class="sheet-detail" id="sheet-detail"></div>
+
+  <!-- list -->
+  <div class="sheet-list" id="sheet-list"></div>
+</div>
+
+<!-- TRAY -->
+<div id="tray">
+  <button class="tray-btn" onclick="cycleSheet()">
+    <span class="ic">≡</span><span>Browse</span>
+  </button>
+  <button class="tray-btn" onclick="showToast('Centered on your location')">
+    <span class="ic">◎</span><span>Near me</span>
+  </button>
+  <button class="legend-btn" onclick="toggleLegend()">
+    <span class="ic">⊞</span><span>Legend</span>
+  </button>
+  <button class="tray-btn" onclick="showToast('Saved to your spaces')">
+    <span class="ic">♡</span><span>Saved</span>
+  </button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const TYPES = {
+  library: { label:'Library',     icon:'📚', bg:'#4a5f7b' },
+  cafe:    { label:'Café',        icon:'☕', bg:'#8a5a38' },
+  cowork:  { label:'Coworking',   icon:'💻', bg:'#3e6c4e' },
+  campus:  { label:'Campus',      icon:'🏛️', bg:'#6c4d7b' },
+  quiet:   { label:'Quiet Space', icon:'🔇', bg:'#5a7a6a' },
+  studio:  { label:'Studio',      icon:'⚙️', bg:'#7a5a3a' },
+};
+
+const SPACES = [
+  {
+    id:1, name:'San Francisco Main Library',
+    type:'library', x:52, y:60,
+    address:'100 Larkin St, Civic Center',
+    desc:'Grand Beaux-Arts civic library with six floors of stacks, panoramic views, a dedicated SF history room, and the James C. Hormel LGBTQIA+ Center. The 5th floor reading rooms are especially peaceful on weekday mornings.',
+    hours:'Mon–Thu 9am–8pm · Fri 12–6pm · Sat 10–6pm · Sun 12–5pm',
+    wifi:'Free, 2hr sessions',
+    noise:'Varies by floor — upper floors quietest',
+    power:'Limited at study carrels',
+    capacity:'250+',
+    occupancy:62, density:'high',
+    tags:['Archives','Printing','Meeting Rooms','Accessible'],
+    occ:'medium'
+  },
+  {
+    id:2, name:'Haight-Ashbury Branch Library',
+    type:'library', x:18, y:50,
+    address:'547 Cole St, Haight-Ashbury',
+    desc:'Intimate neighborhood branch tucked into a quiet residential block. Excellent for a few focused hours — the periodical reading area faces a small courtyard garden. Often overlooked by non-locals.',
+    hours:'Tue–Sat 10am–6pm · Closed Sun/Mon',
+    wifi:'Free, no time limit',
+    noise:'Consistently quiet',
+    power:'A few outlets near reading tables',
+    capacity:'40',
+    occupancy:28, density:'low',
+    tags:['Neighborhood', 'Quiet','Garden View'],
+    occ:'low'
+  },
+  {
+    id:3, name:'Park Branch Library',
+    type:'library', x:8, y:36,
+    address:'1833 Page St, Inner Sunset',
+    desc:'A beloved community library bordering Golden Gate Park. Natural light, wooden reading tables, and a welcoming staff that knows most regulars by name. Strong local history and nature collections.',
+    hours:'Tue–Sat 10am–6pm',
+    wifi:'Free',
+    noise:'Quiet',
+    power:'Limited',
+    capacity:'35',
+    occupancy:22, density:'low',
+    tags:['Golden Gate Park Adjacent','Local History','Relaxed'],
+    occ:'low'
+  },
+  {
+    id:4, name:'Nourish Café',
+    type:'cafe', x:36, y:58,
+    address:'631 Hayes St, Hayes Valley',
+    desc:'Warm, plant-forward café that fills with freelancers and students by 9am. Good espresso, excellent pour-overs, communal bench table by the window. Staff are laptop-friendly as long as you\'re buying.',
+    hours:'Mon–Fri 7am–4pm · Sat–Sun 8am–3pm',
+    wifi:'Free, password at counter',
+    noise:'Moderate buzz — light music',
+    power:'Power strips under the long bench',
+    capacity:'28',
+    occupancy:75, density:'high',
+    tags:['Laptop Friendly','Pour Over','Natural Light','Vegan Options'],
+    occ:'high'
+  },
+  {
+    id:5, name:'Sightglass Coffee — 7th St',
+    type:'cafe', x:60, y:66,
+    address:'270 7th St, SoMa',
+    desc:'Cavernous roastery space with soaring ceilings, long communal tables, and serious coffee. One of the few SF cafés explicitly tolerant of long work sessions. The back mezzanine is quieter than the ground floor.',
+    hours:'Mon–Fri 7am–5pm · Sat–Sun 8am–5pm',
+    wifi:'Free, fast',
+    noise:'Medium — ambient roastery noise',
+    power:'Ample outlets throughout',
+    capacity:'80+',
+    occupancy:55, density:'high',
+    tags:['Roastery','Long Sessions OK','Mezzanine','Community Table'],
+    occ:'medium'
+  },
+  {
+    id:6, name:'Linea Caffe',
+    type:'cafe', x:28, y:42,
+    address:'3417 18th St, Mission / Noe Valley',
+    desc:'Small, serious espresso bar with a reputation as one of SF\'s best. The side counter has exactly four seats — ideal for solo work with minimal distraction. Not designed for hours-long sessions, but great for 90 minutes of focused output.',
+    hours:'Mon–Fri 7am–3pm · Sat 8am–3pm',
+    wifi:'No wifi — a feature, not a bug',
+    noise:'Very quiet — minimal chatter',
+    power:'No power outlets',
+    capacity:'12',
+    occupancy:40, density:'low',
+    tags:['Serious Coffee','No Wifi','Focused','Espresso Bar'],
+    occ:'low'
+  },
+  {
+    id:7, name:'Ritual Coffee — Hayes Valley',
+    type:'cafe', x:44, y:52,
+    address:'432B Octavia St, Hayes Valley',
+    desc:'Light-filled corner café in a converted Victorian storefront. Ritual\'s menu skews technical and seasonal. Regulars camp here with laptops most weekday mornings — staff are accommodating during off-peak hours.',
+    hours:'Mon–Fri 7am–5pm · Sat–Sun 8am–5pm',
+    wifi:'Free',
+    noise:'Moderate',
+    power:'Some outlets along east wall',
+    capacity:'22',
+    occupancy:60, density:'medium',
+    tags:['Specialty Coffee','Victorian Space','Neighborhood'],
+    occ:'medium'
+  },
+  {
+    id:8, name:'Boba Guys — Divisadero',
+    type:'cafe', x:14, y:44,
+    address:'3491 19th St, Divisadero',
+    desc:'Surprisingly solid study café — the back room has large tables and is calmer than the front counter suggests. Excellent boba and matcha drinks. The afternoon lull (2–4pm) is perfect for deep work.',
+    hours:'Daily 11am–9pm',
+    wifi:'Free, stable',
+    noise:'Moderate front, quieter back',
+    power:'Back wall outlets',
+    capacity:'35',
+    occupancy:45, density:'medium',
+    tags:['Back Room','Afternoon Lull','Boba','Chill'],
+    occ:'medium'
+  },
+  {
+    id:9, name:'Canopy — Hayes Valley',
+    type:'cowork', x:40, y:48,
+    address:'399 Grove St, Hayes Valley',
+    desc:'Boutique coworking space aimed at creative independents and small teams. Day passes available. Curated membership keeps the energy collaborative but low-noise. Good natural light and a pleasant shared kitchen.',
+    hours:'Mon–Fri 8am–8pm · Sat 9am–5pm',
+    wifi:'Fast, gigabit',
+    noise:'Low to medium — focused atmosphere',
+    power:'Everywhere',
+    capacity:'60',
+    occupancy:50, density:'medium',
+    tags:['Day Pass','Creative','Private Rooms','Kitchen'],
+    occ:'medium'
+  },
+  {
+    id:10, name:'The Vault SF',
+    type:'cowork', x:62, y:54,
+    address:'77 Van Ness Ave, Civic Center',
+    desc:'Converted bank building with high ceilings, original vault still intact. A dramatic environment for a productive day. Amenities include phone booths, an event space, and a café on the ground floor.',
+    hours:'Mon–Fri 7am–9pm · Sat 8am–6pm',
+    wifi:'Blazing fast',
+    noise:'Low — serious work culture',
+    power:'Everywhere, standing desks available',
+    capacity:'120',
+    occupancy:68, density:'high',
+    tags:['Hot Desks','Private Offices','Historic Building','Phone Booths'],
+    occ:'medium'
+  },
+  {
+    id:11, name:'Parisoma — Market St',
+    type:'cowork', x:54, y:56,
+    address:'169 11th St, SoMa',
+    desc:'Long-running SF coworking institution with a startup-friendly culture. Known for events and workshops that bring members together. Solid daily rates. The loft area upstairs has the best quiet-work energy.',
+    hours:'Mon–Fri 7am–8pm',
+    wifi:'Good',
+    noise:'Variable — loft quieter',
+    power:'Throughout',
+    capacity:'80',
+    occupancy:55, density:'medium',
+    tags:['Startup Friendly','Events','Loft','Community'],
+    occ:'medium'
+  },
+  {
+    id:12, name:'WorkWell — Divisadero',
+    type:'cowork', x:16, y:38,
+    address:'2201 Market St, Upper Market',
+    desc:'Neighborhood coworking space with a wellness orientation — meditation corner, standing desks, ergonomic chairs throughout. Quiet and deliberately paced. Members skew toward health, design, and strategy roles.',
+    hours:'Mon–Fri 8am–8pm',
+    wifi:'Fast',
+    noise:'Very low — wellness atmosphere',
+    power:'Standing desks included',
+    capacity:'40',
+    occupancy:35, density:'low',
+    tags:['Wellness','Quiet','Ergonomic','Standing Desks'],
+    occ:'low'
+  },
+  {
+    id:13, name:'UCSF Mission Bay Library',
+    type:'library', x:78, y:70,
+    address:'1600 Owens St, Mission Bay',
+    desc:'Stunning modern research library in UCSF\'s Mission Bay campus. Access for students and affiliates, but general public may use reading rooms with a visitor pass at the desk. Exceptional science and health collections.',
+    hours:'Mon–Fri 8am–10pm · Sat–Sun 10am–8pm',
+    wifi:'Eduroam + visitor network',
+    noise:'Research-library quiet',
+    power:'Generous — research carrels',
+    capacity:'200+',
+    occupancy:48, density:'medium',
+    tags:['Research','Science','Visitor Pass','Modern'],
+    occ:'medium'
+  },
+  {
+    id:14, name:'SF State J. Paul Leonard Library',
+    type:'campus', x:20, y:82,
+    address:'1630 Holloway Ave, Ingleside',
+    desc:'SFSU\'s main library with good open-stack access and numerous group study rooms. Off-campus visitors can get a community borrower card. The upper floors are reliably quiet; the ground floor is more social.',
+    hours:'Mon–Thu 8am–9pm · Fri 8am–5pm · Sat–Sun 11am–5pm',
+    wifi:'Eduroam + guest access',
+    noise:'Upper floors quiet',
+    power:'Study carrels throughout',
+    capacity:'300+',
+    occupancy:58, density:'high',
+    tags:['Group Rooms','Community Card','Stack Access','University'],
+    occ:'medium'
+  },
+  {
+    id:15, name:'UC Hastings Law Library',
+    type:'campus', x:50, y:62,
+    address:'200 McAllister St, Civic Center',
+    desc:'Formal law library with high reading room ceilings, serious atmosphere, and excellent legal databases. Open to the public for in-person use. An underrated gem for deep solo work — the reading room demands focus.',
+    hours:'Mon–Fri 8am–8pm · Sat 10am–5pm',
+    wifi:'Guest network available',
+    noise:'Strictly quiet — law library culture',
+    power:'Reading room outlets',
+    capacity:'100',
+    occupancy:30, density:'low',
+    tags:['Law Library','Public Access','Formal','Quiet Culture'],
+    occ:'low'
+  },
+  {
+    id:16, name:'Mechanics\' Institute Library',
+    type:'library', x:72, y:50,
+    address:'57 Post St, Financial District',
+    desc:'Founded in 1854, one of SF\'s oldest member libraries. Annual membership grants access to an extraordinary private reading room, extensive chess room, and rotating gallery. A hidden treasure in the Financial District.',
+    hours:'Mon–Thu 9am–8pm · Fri 9am–6pm · Sat 10am–5pm',
+    wifi:'Members: fast. Day pass available.',
+    noise:'Victorian hush',
+    power:'Reading room outlets',
+    capacity:'80',
+    occupancy:40, density:'low',
+    tags:['Members Only','Historic 1854','Reading Room','Chess'],
+    occ:'low'
+  },
+  {
+    id:17, name:'The Green Room — NoPa',
+    type:'quiet', x:22, y:30,
+    address:'580 Divisadero St, NoPa',
+    desc:'A neighborhood reading and study room concept operating above a bookshop. Membership or day rate gives you access to a calm, curated environment — no café noise, no music. Eight desks, natural light, a small library of design and philosophy titles.',
+    hours:'Tue–Sun 10am–7pm',
+    wifi:'Fast, no throttle',
+    noise:'Silent work culture',
+    power:'Every desk',
+    capacity:'8',
+    occupancy:25, density:'low',
+    tags:['Silent','Above Bookshop','Curated','Day Rate'],
+    occ:'low'
+  },
+  {
+    id:18, name:'Studio 1510 — Maker Space',
+    type:'studio', x:32, y:64,
+    address:'1510 Mission St, SoMa Adjacent',
+    desc:'Community maker space with fabrication tools, laser cutters, 3D printers, and electronics workbenches. Monthly and drop-in memberships. Orientation required for tool access. The hot-desk lounge area is open to all members without tools.',
+    hours:'Mon–Fri 9am–10pm · Sat–Sun 10am–8pm',
+    wifi:'Fast',
+    noise:'Active — fabrication sounds',
+    power:'Workbench power throughout',
+    capacity:'45',
+    occupancy:50, density:'medium',
+    tags:['3D Printing','Laser Cutter','Electronics','Fabrication'],
+    occ:'medium'
+  },
+  {
+    id:19, name:'Noisebridge — Mission',
+    type:'studio', x:46, y:68,
+    address:'2169 Mission St, Mission',
+    desc:'SF\'s legendary volunteer-run hackerspace. Open to anyone curious about technology, making, and learning. No-fee, donation-based culture. Electronics, sewing, VR, darkroom, and a sprawling, beautifully chaotic environment. Do-ocracy in action.',
+    hours:'Open 24/7 · Most active evenings',
+    wifi:'Fast',
+    noise:'Variable — collaborative energy',
+    power:'Everywhere',
+    capacity:'60',
+    occupancy:40, density:'medium',
+    tags:['Hackerspace','Free to Enter','24/7','Electronics','VR'],
+    occ:'medium'
+  },
+  {
+    id:20, name:'Dogpatch Studios',
+    type:'studio', x:84, y:76,
+    address:'991 Tennessee St, Dogpatch',
+    desc:'Professional studio complex hosting designers, artists, photographers, and small production teams. Private and shared studio rentals. The shared creative lounge is available to all renters. Light-filled industrial building with loading dock access.',
+    hours:'24/7 for members · Visits by appointment',
+    wifi:'Gigabit',
+    noise:'Variable by studio',
+    power:'Throughout — 3-phase available',
+    capacity:'80',
+    occupancy:45, density:'medium',
+    tags:['Photography','Design','Private Studios','24/7 Access'],
+    occ:'medium'
+  },
+  {
+    id:21, name:'The Interval at Long Now',
+    type:'quiet', x:66, y:42,
+    address:'Fort Mason Center, Marina',
+    desc:'Part bar, part library, part lecture venue — the Long Now Foundation\'s home at Fort Mason. During the day it functions as a serene working environment with extraordinary book curation, handmade clocks, and views of the Bay. One of SF\'s most intellectually distinctive spaces.',
+    hours:'Daily 11am–8pm (bar opens 2pm)',
+    wifi:'Good',
+    noise:'Exceptionally quiet before 2pm',
+    power:'Limited — a few outlets',
+    capacity:'30',
+    occupancy:20, density:'low',
+    tags:['Long Now Foundation','Bay Views','Curated Library','Unique'],
+    occ:'low'
+  },
+  {
+    id:22, name:'Potrero Branch Library',
+    type:'library', x:70, y:64,
+    address:'1616 20th St, Potrero Hill',
+    desc:'Small neighborhood library with a devoted local following and a large sunny reading area facing a garden. Often overlooked in favor of the main branch — which makes it ideal for quiet, uninterrupted work.',
+    hours:'Tue–Sat 10am–6pm',
+    wifi:'Free',
+    noise:'Very quiet',
+    power:'Some reading table outlets',
+    capacity:'35',
+    occupancy:20, density:'low',
+    tags:['Garden View','Quiet','Neighborhood','Relaxed Atmosphere'],
+    occ:'low'
+  },
+  {
+    id:23, name:'NextSpace Coworking',
+    type:'cowork', x:58, y:48,
+    address:'28 2nd St, Financial District',
+    desc:'Well-established coworking space in the heart of FiDi. Close to transit, clean and professional. Attracts a mix of freelancers, remote workers, and small startups. A few private offices available by the week.',
+    hours:'Mon–Fri 7am–8pm',
+    wifi:'Fast',
+    noise:'Focused professional',
+    power:'Throughout',
+    capacity:'70',
+    occupancy:65, density:'high',
+    tags:['FiDi Location','Professional','Transit Hub','Week Offices'],
+    occ:'medium'
+  },
+  {
+    id:24, name:'Creativity Explored Studio',
+    type:'studio', x:38, y:72,
+    address:'3245 16th St, Mission',
+    desc:'Not a coworking space — a professional art studio for artists with developmental disabilities. The adjacent gallery and shop are open to the public and worth visiting. The studio environment is intentionally open and community-centered.',
+    hours:'Mon–Fri 10am–3pm (gallery: Mon–Sat 11am–6pm)',
+    wifi:'Gallery only',
+    noise:'Active — creative energy',
+    power:'Studio only',
+    capacity:'25',
+    occupancy:70, density:'medium',
+    tags:['Art Studio','Gallery','Community','Mission District'],
+    occ:'medium'
+  }
+];
+
+let activeFilter = 'all';
+let activeSpace  = null;
+let searchQuery  = '';
+let sheetState   = 'peek'; // peek | half | full
+let legendVisible = false;
+let toastTimer;
+
+function filteredSpaces() {
+  return SPACES.filter(s => {
+    const matchType   = activeFilter === 'all' || s.type === activeFilter;
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q));
+    return matchType && matchSearch;
+  });
+}
+
+// ── PINS ────────────────────────────────────────────
+function renderPins() {
+  const layer = document.getElementById('pins-layer');
+  layer.innerHTML = '';
+  const spaces = filteredSpaces();
+  spaces.forEach(s => {
+    const t = TYPES[s.type];
+    const div = document.createElement('div');
+    div.className = 'pin' + (activeSpace === s.id ? ' active' : '');
+    div.dataset.type = s.type;
+    div.dataset.density = s.density;
+    div.style.left = s.x + '%';
+    div.style.top  = s.y + '%';
+    div.innerHTML = `
+      <div class="pin-body">
+        <div class="pin-drop">
+          <div class="pin-ring"></div>
+          <span class="pin-icon">${t.icon}</span>
+          <div class="pin-occ occ-${s.occ}"></div>
+        </div>
+      </div>
+      <div class="pin-stem"></div>
+      <div class="pin-tooltip">${s.name}<br><span style="opacity:.6;font-size:9px">${t.label} · ${s.occ === 'low' ? 'Usually quiet' : s.occ === 'medium' ? 'Moderate' : 'Often busy'}</span></div>
+    `;
+    div.addEventListener('click', () => selectSpace(s.id));
+    layer.appendChild(div);
+  });
+}
+
+// ── LIST ─────────────────────────────────────────────
+function renderList() {
+  const list   = document.getElementById('sheet-list');
+  const spaces = filteredSpaces();
+  document.getElementById('sheet-count').textContent = spaces.length + ' work & study space' + (spaces.length !== 1 ? 's' : '');
+
+  list.innerHTML = spaces.map(s => {
+    const t = TYPES[s.type];
+    return `
+    <div class="list-item${activeSpace === s.id ? ' active' : ''}" data-id="${s.id}" onclick="selectSpace(${s.id})">
+      <div class="list-icon" style="background:${t.bg}20;border:1px solid ${t.bg}30">${t.icon}</div>
+      <div class="list-body">
+        <div class="list-name">${s.name}</div>
+        <div class="list-sub">${t.label} · ${s.address}</div>
+      </div>
+      <div class="list-right">
+        <span class="list-occ" style="background:${s.occ==='low'?'#4a8c5a':s.occ==='medium'?'#b88c3a':'#8b3a2a'}">${s.occ==='low'?'Quiet':s.occ==='medium'?'Moderate':'Busy'}</span>
+        <span class="list-noise" style="font-size:8px">${s.wifi.includes('No wifi') ? '⚡ No wifi' : '◎ Wifi'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DETAIL ───────────────────────────────────────────
+function renderDetail(s) {
+  if (!s) { document.getElementById('sheet-detail').className = 'sheet-detail'; return; }
+  const t = TYPES[s.type];
+  const pct = s.occupancy;
+  const barColor = pct < 40 ? '#4a8c5a' : pct < 70 ? '#b88c3a' : '#8b3a2a';
+
+  document.getElementById('sheet-detail').innerHTML = `
+    <span class="detail-type-tag" style="background:${t.bg}">${t.icon} ${t.label}</span>
+    <div class="detail-name">${s.name}</div>
+    <div class="detail-address">${s.address}</div>
+    <div class="detail-desc">${s.desc}</div>
+
+    <div class="occ-bar-wrap">
+      <div class="occ-bar-label"><span>Typical occupancy</span><span>${pct}%</span></div>
+      <div class="occ-bar-track"><div class="occ-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+    </div>
+
+    <div class="detail-meta">
+      <div class="meta-item">
+        <div class="meta-label">Hours</div>
+        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.hours}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Noise Level</div>
+        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.noise}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Wifi</div>
+        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.wifi}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Power</div>
+        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.power}</div>
+      </div>
+    </div>
+
+    <div class="detail-tags">
+      ${s.tags.map(tag => `<span class="detail-tag">${tag}</span>`).join('')}
+    </div>
+
+    <div class="detail-actions">
+      <button class="action-btn" onclick="showToast('Saved ${s.name}')">♡ Save</button>
+      <button class="action-btn" onclick="showToast('Directions to ${s.name}')">↗ Directions</button>
+      <button class="action-btn primary" onclick="showToast('Check-in at ${s.name}')">✦ Check in</button>
+    </div>
+  `;
+  document.getElementById('sheet-detail').className = 'sheet-detail visible';
+}
+
+function selectSpace(id) {
+  activeSpace = activeSpace === id ? null : id;
+  const s = SPACES.find(sp => sp.id === id);
+  renderPins();
+  renderList();
+  renderDetail(activeSpace ? s : null);
+  if (activeSpace) {
+    setSheet('half');
+    // scroll list to item
+    setTimeout(() => {
+      const el = document.querySelector(`.list-item[data-id="${id}"]`);
+      if (el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 100);
+  }
+}
+
+// ── FILTERS ──────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    activeFilter = chip.dataset.f;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+    activeSpace = null;
+    renderDetail(null);
+    renderPins();
+    renderList();
+  });
+});
+
+// ── SEARCH ───────────────────────────────────────────
+document.getElementById('search-in').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  renderPins();
+  renderList();
+});
+
+// ── SHEET ────────────────────────────────────────────
+function setSheet(state) {
+  sheetState = state;
+  const sheet = document.getElementById('sheet');
+  sheet.className = state;
+}
+
+function cycleSheet() {
+  const next = { peek:'half', half:'full', full:'peek' };
+  setSheet(next[sheetState]);
+}
+
+document.getElementById('sheet-handle').addEventListener('click', cycleSheet);
+
+// ── LEGEND ───────────────────────────────────────────
+function toggleLegend() {
+  legendVisible = !legendVisible;
+  document.getElementById('legend').className = legendVisible ? 'visible' : '';
+}
+
+// ── TOAST ────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── BOOT ─────────────────────────────────────────────
+renderPins();
+renderList();
+setTimeout(() => setSheet('peek'), 800);
+</script>
+</body>
+</html>
