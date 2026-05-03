@@ -1,1427 +1,1367 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dwell — Work & Study</title>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Dwell - Perch</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --paper:    #f0ece0;
-  --paper-2:  #e8e2d4;
-  --paper-3:  #ddd7c8;
-  --ink:      #1e1a14;
-  --ink-2:    #3d3528;
-  --ink-3:    #6b5f4e;
-  --ink-4:    #9c8e7c;
-  --forest:   #2e5c3e;
-  --ember:    #8b2a1a;
-  --gold:     #9a7c3f;
-  --slate:    #3a4f6b;
-  --plum:     #5c3d6b;
-  --teal:     #2e6b6b;
-  --border:   rgba(30,26,20,.12);
-  --shadow:   rgba(30,26,20,.18);
+  --paper:   #f0ece0;
+  --paper-2: #e8e2d4;
+  --paper-3: #ddd7c8;
+  --ink:     #1e1a14;
+  --ink-2:   #3d3528;
+  --ink-3:   #6b5f4e;
+  --ink-4:   #9c8e7c;
+  --border:  rgba(30,26,20,.12);
+  --shadow:  rgba(30,26,20,.18);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--ink);font-family:'DM Mono',monospace;color:var(--ink);overflow:hidden;width:100vw;height:100dvh;user-select:none}
 
-  /* space type colors */
-  --c-library:  #3a4f6b;
-  --c-cafe:     #7a4a2a;
-  --c-cowork:   #2e5c3e;
-  --c-campus:   #5c3d6b;
-  --c-quiet:    #4a6b5a;
-  --c-studio:   #6b4a2e;
-}
+/* MAP */
+#map-wrap{position:absolute;inset:0;background:var(–paper);overflow:hidden}
+#map-svg{position:absolute;inset:0;width:100%;height:100%}
+.grid-line{stroke:var(–ink);stroke-opacity:.05}
+.major-road{stroke:var(–paper-3);stroke-opacity:.92}
+.minor-road{stroke:var(–paper-3);stroke-opacity:.6}
+.block{fill:var(–paper-2);stroke:none}
+.water{fill:#c8d8ea}
+.bay{fill:#bdd0e4}
+.ocean{fill:#b8cce0}
+.park{fill:#cfe0cb}
+.canyon{fill:#d8e4cc}
+.beach{fill:#ede8d8}
+.label{fill:var(–ink-4);font-family:‘DM Mono’,monospace;font-size:7px;letter-spacing:.05em;text-anchor:middle}
+.district-label{fill:var(–ink-3);font-family:‘EB Garamond’,serif;font-style:italic;font-size:10px;letter-spacing:.06em;text-anchor:middle;opacity:.65}
+.water-label{fill:#7a9ab8;font-family:‘EB Garamond’,serif;font-style:italic;font-size:9px;letter-spacing:.08em;text-anchor:middle;opacity:.75}
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+/* PINS */
+#pins-layer{position:absolute;inset:0;pointer-events:none}
+.pin{position:absolute;transform:translate(-50%,-100%);pointer-events:all;cursor:pointer;transition:transform .15s ease,filter .15s ease,opacity .2s ease;z-index:10}
+.pin:hover,.pin.active{transform:translate(-50%,-100%) scale(1.2);filter:drop-shadow(0 4px 14px rgba(30,26,20,.38));z-index:50}
+.pin.dimmed{opacity:.18;pointer-events:none}
+.pin-body{width:28px;height:36px;position:relative;display:flex;align-items:center;justify-content:center}
+.pin-drop{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.28);box-shadow:1px 2px 8px rgba(30,26,20,.3);position:relative}
+.pin-drop::after{content:’’;position:absolute;inset:3px;border-radius:50% 50% 50% 0;background:rgba(255,255,255,.14)}
+.pin-icon{transform:rotate(45deg);font-size:12px;position:relative;z-index:1}
+.pin-stem{width:2px;height:9px;background:currentColor;opacity:.4;margin:0 auto;border-radius:0 0 2px 2px}
+.pin-ring{position:absolute;inset:-5px;border-radius:50%;border:1.5px solid currentColor;opacity:.2;animation:pulse-ring 3s ease-in-out infinite}
+@keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.2}50%{transform:scale(1.1);opacity:.08}}
+.pin[data-density=“low”] .pin-ring{display:none}
+.pin-occ{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;border:1.5px solid var(–paper)}
+.occ-low{background:#4a8c5a}.occ-medium{background:#b88c3a}.occ-high{background:#8b3a2a}
+.pin[data-type=“library”] .pin-drop{background:linear-gradient(135deg,#4a5f7b,#2e3f5a);color:#b8c8e0}.pin[data-type=“library”] .pin-stem{color:#2e3f5a}
+.pin[data-type=“cafe”]    .pin-drop{background:linear-gradient(135deg,#8a5a38,#5e3a20);color:#f0d8b8}.pin[data-type=“cafe”]    .pin-stem{color:#5e3a20}
+.pin[data-type=“cowork”]  .pin-drop{background:linear-gradient(135deg,#3e6c4e,#254a32);color:#b8d8c0}.pin[data-type=“cowork”]  .pin-stem{color:#254a32}
+.pin[data-type=“campus”]  .pin-drop{background:linear-gradient(135deg,#6c4d7b,#462e5a);color:#d8c0e8}.pin[data-type=“campus”]  .pin-stem{color:#462e5a}
+.pin[data-type=“quiet”]   .pin-drop{background:linear-gradient(135deg,#5a7a6a,#3a5848);color:#c0d8d0}.pin[data-type=“quiet”]   .pin-stem{color:#3a5848}
+.pin[data-type=“studio”]  .pin-drop{background:linear-gradient(135deg,#7a5a3a,#5a3a20);color:#e0c8a8}.pin[data-type=“studio”]  .pin-stem{color:#5a3a20}
 
-body {
-  background: var(--ink);
-  font-family: 'DM Mono', monospace;
-  color: var(--ink);
-  overflow: hidden;
-  width: 100vw;
-  height: 100dvh;
-  user-select: none;
-}
+/* TOOLTIP */
+.pin-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(–ink);color:var(–paper);border-radius:6px;padding:5px 9px;font-size:9px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:200;letter-spacing:.03em;min-width:100px;text-align:center}
+.pin-tooltip::after{content:’’;position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(–ink)}
+.pin:hover .pin-tooltip{opacity:1}
 
-/* ── MAP BACKGROUND ──────────────────────────────── */
-#map-wrap {
-  position: absolute;
-  inset: 0;
-  background: var(--paper);
-  overflow: hidden;
-}
+/* ME DOT */
+.me{position:absolute;width:13px;height:13px;transform:translate(-50%,-50%);pointer-events:none;z-index:20}
+.me-ring{position:absolute;inset:-6px;border-radius:50%;background:rgba(62,76,92,.16);animation:me-pulse 2.5s ease-in-out infinite}
+.me-dot{position:absolute;inset:2px;border-radius:50%;background:var(–ink-2);border:2px solid var(–paper);box-shadow:0 1px 6px rgba(30,26,20,.3)}
+@keyframes me-pulse{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.6);opacity:.15}}
 
-#map-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
+/* HEADER */
+#header{position:absolute;top:0;left:0;right:0;z-index:100;padding:14px 16px 0;background:linear-gradient(180deg,rgba(240,236,224,.97) 80%,rgba(240,236,224,0) 100%);backdrop-filter:blur(4px)}
+.header-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 
-/* Cartographic grid lines */
-.grid-line { stroke: var(--ink); stroke-opacity: .06; }
-.major-road { stroke: var(--paper-3); stroke-opacity: .9; }
-.minor-road { stroke: var(--paper-3); stroke-opacity: .55; }
-.block { fill: var(--paper-2); stroke: none; }
-.water { fill: #ccd9e8; stroke: none; }
-.park  { fill: #d4e0d0; stroke: none; }
-.label { fill: var(--ink-4); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .04em; text-anchor: middle; }
-.district-label { fill: var(--ink-3); font-family: 'EB Garamond', serif; font-style: italic; font-size: 11px; letter-spacing: .06em; text-anchor: middle; opacity: .7; }
+/* LOGO */
+.logo-lockup{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.logo-mark{width:24px;height:24px;flex-shrink:0}
+.logo-mark svg{width:24px;height:24px}
+.logo-text{display:flex;flex-direction:column;line-height:1;gap:1px}
+.logo-dwell{font-family:‘Lora’,serif;font-weight:400;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(–ink-3);line-height:1}
+.logo-perch{font-family:‘Lora’,serif;font-weight:500;font-size:17px;letter-spacing:-.01em;color:var(–ink);line-height:1.05}
 
-/* ── PINS LAYER ──────────────────────────────────── */
-#pins-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
+/* CITY BADGE */
+.city-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(–paper-2);border:1px solid var(–border);border-radius:6px;font-family:‘DM Mono’,monospace;font-size:10px;color:var(–ink-3);letter-spacing:.04em;flex-shrink:0}
+.city-badge .dot{width:6px;height:6px;border-radius:50%;background:#4a8c5a;flex-shrink:0}
 
-.pin {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  pointer-events: all;
-  cursor: pointer;
-  transition: transform .15s ease, filter .15s ease;
-  z-index: 10;
-}
-.pin:hover, .pin.active {
-  transform: translate(-50%, -100%) scale(1.18);
-  filter: drop-shadow(0 4px 12px rgba(30,26,20,.35));
-  z-index: 50;
-}
+/* SEARCH */
+.search-wrap{flex:1;position:relative;display:flex;align-items:center}
+.search-icon{position:absolute;left:10px;color:var(–ink-4);font-size:13px;pointer-events:none;line-height:1}
+.search-in{width:100%;background:var(–paper-2);border:1px solid var(–border);border-radius:6px;padding:7px 10px 7px 28px;font-family:‘DM Mono’,monospace;font-size:11px;color:var(–ink);outline:none;transition:border-color .15s}
+.search-in::placeholder{color:var(–ink-4)}.search-in:focus{border-color:rgba(30,26,20,.3)}
 
-.pin-body {
-  width: 30px;
-  height: 38px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* FILTER TOGGLE */
+.filter-toggle{display:flex;align-items:center;gap:5px;background:var(–paper-2);border:1px solid var(–border);border-radius:6px;padding:7px 11px;font-family:‘DM Mono’,monospace;font-size:10px;letter-spacing:.04em;color:var(–ink-3);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.filter-toggle.active{background:var(–ink);color:var(–paper);border-color:var(–ink)}
+.filter-badge{background:rgba(255,255,255,.22);border-radius:10px;padding:1px 5px;font-size:9px;display:none}
+.filter-toggle.active .filter-badge{display:inline}
 
-.pin-drop {
-  width: 28px;
-  height: 28px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(255,255,255,.3);
-  box-shadow: 1px 2px 8px rgba(30,26,20,.28);
-  position: relative;
-}
-.pin-drop::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50% 50% 50% 0;
-  background: rgba(255,255,255,.15);
-}
+/* ACTIVE PILLS */
+#active-bar{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:0 0 6px}
+#active-bar:empty{padding:0}
+.active-pill{display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:12px;background:var(–ink);color:var(–paper);font-size:9px;letter-spacing:.04em;cursor:pointer}
+.active-pill:hover{opacity:.75}
+.active-pill .x{font-size:11px;opacity:.55}
 
-.pin-icon {
-  transform: rotate(45deg);
-  font-size: 13px;
-  position: relative;
-  z-index: 1;
-}
+/* TYPE STRIP */
+#type-strip{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}
+#type-strip::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1px solid var(–border);background:rgba(255,255,255,.5);font-family:‘DM Mono’,monospace;font-size:10px;letter-spacing:.04em;color:var(–ink-3);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip.on{background:var(–ink);color:var(–paper);border-color:var(–ink)}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6}
+.chip.on .chip-dot{opacity:.8}
 
-.pin-stem {
-  width: 2px;
-  height: 10px;
-  background: currentColor;
-  opacity: .45;
-  margin: 0 auto;
-  border-radius: 0 0 2px 2px;
-}
+/* FILTER DRAWER */
+#drawer-scrim{position:absolute;inset:0;z-index:250;background:rgba(30,26,20,.28);backdrop-filter:blur(1px);display:none}
+#drawer-scrim.visible{display:block}
+#filter-drawer{position:absolute;top:0;left:0;right:0;z-index:300;background:var(–paper);border-bottom:1px solid var(–border);box-shadow:0 8px 40px rgba(30,26,20,.15);transform:translateY(-100%);transition:transform .3s cubic-bezier(.32,.72,0,1);max-height:88dvh;overflow-y:auto}
+#filter-drawer.open{transform:translateY(0)}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(–border);position:sticky;top:0;background:var(–paper);z-index:1}
+.drawer-title{font-family:‘Lora’,serif;font-weight:500;font-size:18px;color:var(–ink)}
+.drawer-acts{display:flex;gap:8px;align-items:center}
+.btn-clear{font-family:‘DM Mono’,monospace;font-size:9px;letter-spacing:.06em;color:var(–ink-4);background:none;border:none;cursor:pointer;padding:5px 9px;border-radius:4px;transition:all .12s}
+.btn-clear:hover{background:var(–paper-2);color:var(–ink-3)}
+.btn-done{font-family:‘DM Mono’,monospace;font-size:10px;letter-spacing:.04em;color:var(–paper);background:var(–ink);border:none;cursor:pointer;padding:6px 14px;border-radius:6px}
+.fsec{padding:14px 16px;border-bottom:1px solid var(–border)}
+.fsec:last-child{border-bottom:none}
+.fsec-label{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(–ink-4);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.fsec-label em{font-style:normal;opacity:.5;font-size:9px;letter-spacing:.04em;text-transform:none}
+.fpills{display:flex;flex-wrap:wrap;gap:6px}
+.fpill{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(–border);background:rgba(255,255,255,.5);font-family:‘DM Mono’,monospace;font-size:10px;letter-spacing:.04em;color:var(–ink-3);cursor:pointer;transition:all .14s;white-space:nowrap}
+.fpill:hover{border-color:rgba(30,26,20,.25);background:var(–paper-2)}
+.fpill.on{background:var(–ink);color:var(–paper);border-color:var(–ink)}
+.fi{font-size:12px;line-height:1}
+.fpill[data-v=“deep-focus”].on{background:#3a4a6b;border-color:#3a4a6b}
+.fpill[data-v=“social”].on{background:#6b3a4a;border-color:#6b3a4a}
+.fpill[data-v=“energetic”].on{background:#4a6b3a;border-color:#4a6b3a}
+.fpill[data-v=“contemplative”].on{background:#5a4a2e;border-color:#5a4a2e}
+.fpill[data-v=“creative”].on{background:#6b4a2e;border-color:#6b4a2e}
+.fpill[data-v=“cozy”].on{background:#7a3a3a;border-color:#7a3a3a}
+.fpill[data-v=“historic”].on{background:#4a3a6b;border-color:#4a3a6b}
+.fpill[data-v=“views”].on{background:#2e5c6b;border-color:#2e5c6b}
 
-/* Type colors */
-.pin[data-type="library"]  .pin-drop { background: linear-gradient(135deg, #4a5f7b, #2e3f5a); color: #b8c8e0; }
-.pin[data-type="library"]  .pin-stem { color: #2e3f5a; }
-.pin[data-type="cafe"]     .pin-drop { background: linear-gradient(135deg, #8a5a38, #5e3a20); color: #f0d8b8; }
-.pin[data-type="cafe"]     .pin-stem { color: #5e3a20; }
-.pin[data-type="cowork"]   .pin-drop { background: linear-gradient(135deg, #3e6c4e, #254a32); color: #b8d8c0; }
-.pin[data-type="cowork"]   .pin-stem { color: #254a32; }
-.pin[data-type="campus"]   .pin-drop { background: linear-gradient(135deg, #6c4d7b, #462e5a); color: #d8c0e8; }
-.pin[data-type="campus"]   .pin-stem { color: #462e5a; }
-.pin[data-type="quiet"]    .pin-drop { background: linear-gradient(135deg, #5a7a6a, #3a5848); color: #c0d8d0; }
-.pin[data-type="quiet"]    .pin-stem { color: #3a5848; }
-.pin[data-type="studio"]   .pin-drop { background: linear-gradient(135deg, #7a5a3a, #5a3a20); color: #e0c8a8; }
-.pin[data-type="studio"]   .pin-stem { color: #5a3a20; }
+/* SHEET */
+#sheet{position:absolute;bottom:0;left:0;right:0;z-index:200;background:var(–paper);border-radius:16px 16px 0 0;border-top:1px solid var(–border);box-shadow:0 -4px 40px rgba(30,26,20,.12);max-height:82dvh;display:flex;flex-direction:column;transform:translateY(calc(100% - 56px));transition:transform .32s cubic-bezier(.32,.72,0,1)}
+#sheet.peek{transform:translateY(calc(100% - 56px))}
+#sheet.half{transform:translateY(calc(100% - 52dvh))}
+#sheet.full{transform:translateY(0)}
+.sheet-handle-wrap{padding:10px 0 5px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0}
+.sheet-handle{width:36px;height:4px;background:var(–ink-4);border-radius:2px;opacity:.35}
+.sheet-count-row{display:flex;align-items:center;gap:7px}
+.sheet-count{font-size:10px;color:var(–ink-4);letter-spacing:.06em}
+.sort-btn{font-size:9px;color:var(–ink-4);background:none;border:1px solid transparent;cursor:pointer;padding:2px 7px;border-radius:10px;letter-spacing:.04em;transition:all .12s}
+.sort-btn.on{color:var(–ink-2);background:var(–paper-2);border-color:var(–border)}
 
-/* Density indicator ring */
-.pin-ring {
-  position: absolute;
-  inset: -5px;
-  border-radius: 50%;
-  border: 1.5px solid currentColor;
-  opacity: .2;
-  animation: pulse-ring 3s ease-in-out infinite;
-}
+/* DETAIL */
+.sheet-detail{flex-shrink:0;padding:0 16px 12px;border-bottom:1px solid var(–border);display:none}
+.sheet-detail.visible{display:block}
+.detail-type-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:3px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(–paper);margin-bottom:8px}
+.detail-name{font-family:‘Lora’,serif;font-weight:500;font-size:19px;color:var(–ink);line-height:1.2;margin-bottom:3px}
+.detail-address{font-size:10px;color:var(–ink-3);margin-bottom:9px;letter-spacing:.03em}
+.detail-desc{font-family:‘EB Garamond’,serif;font-size:14px;color:var(–ink-2);line-height:1.6;margin-bottom:11px}
+.detail-attrs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px}
+.attr-badge{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;background:var(–paper-2);border:1px solid var(–border);font-size:9px;color:var(–ink-2);letter-spacing:.04em}
+.attr-badge .ai{font-size:11px}
+.attr-badge.good{background:#e8f2ec;border-color:#b8d8c0;color:#2e5c3e}
+.attr-badge.warn{background:#f2efe8;border-color:#d8d0b8;color:#6b5c3a}
+.attr-badge.muted{background:var(–paper-2);color:var(–ink-4)}
+.detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+.meta-item{background:var(–paper-2);border-radius:6px;padding:8px 10px}
+.meta-label{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(–ink-4);margin-bottom:3px}
+.meta-value{font-size:9px;color:var(–ink);line-height:1.4}
+.detail-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px}
+.detail-tag{padding:3px 8px;border:1px solid var(–border);border-radius:3px;font-size:9px;color:var(–ink-3);letter-spacing:.04em}
+.occ-bar-wrap{margin-bottom:11px}
+.occ-bar-label{display:flex;justify-content:space-between;font-size:9px;color:var(–ink-4);margin-bottom:5px;letter-spacing:.05em;text-transform:uppercase}
+.occ-bar-track{height:4px;background:var(–paper-3);border-radius:2px;overflow:hidden}
+.occ-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.detail-actions{display:flex;gap:8px}
+.action-btn{flex:1;padding:9px;border-radius:6px;font-family:‘DM Mono’,monospace;font-size:10px;letter-spacing:.06em;cursor:pointer;transition:all .15s;text-align:center;border:1px solid var(–border);background:var(–paper-2);color:var(–ink)}
+.action-btn.primary{background:var(–ink);color:var(–paper);border-color:var(–ink)}
 
-@keyframes pulse-ring {
-  0%, 100% { transform: scale(1); opacity: .2; }
-  50%       { transform: scale(1.12); opacity: .08; }
-}
+/* LIST */
+.sheet-list{overflow-y:auto;flex:1;padding:4px 0 env(safe-area-inset-bottom,0);scrollbar-width:thin;scrollbar-color:var(–paper-3) transparent}
+.list-item{display:flex;align-items:flex-start;gap:11px;padding:10px 16px;border-bottom:1px solid var(–border);cursor:pointer;transition:background .12s}
+.list-item:hover,.list-item.active{background:var(–paper-2)}
+.list-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.list-body{flex:1;min-width:0}
+.list-name{font-family:‘Lora’,serif;font-size:14px;font-weight:500;color:var(–ink);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-sub{font-size:9px;color:var(–ink-4);letter-spacing:.03em;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-attrs{display:flex;flex-wrap:wrap;gap:4px}
+.la{font-size:8px;padding:2px 5px;border-radius:3px;letter-spacing:.04em}
+.list-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.list-occ{font-size:9px;padding:2px 6px;border-radius:3px;color:var(–paper);letter-spacing:.04em}
+.list-neighborhood{font-size:8px;color:var(–ink-4);letter-spacing:.04em}
 
-.pin[data-density="high"] .pin-ring { opacity: .3; }
-.pin[data-density="low"]  .pin-ring { display: none; }
+/* EMPTY */
+#empty-state{display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;flex:1}
+#empty-state.visible{display:flex}
+.empty-icon{font-size:28px;opacity:.3}
+.empty-msg{font-family:‘Lora’,serif;font-style:italic;font-size:15px;color:var(–ink-3);text-align:center}
+.empty-sub{font-size:9px;color:var(–ink-4);text-align:center;letter-spacing:.04em;line-height:1.7}
 
-/* Occupancy dot */
-.pin-occ {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1.5px solid var(--paper);
-}
-.occ-low    { background: #4a8c5a; }
-.occ-medium { background: #b88c3a; }
-.occ-high   { background: #8b3a2a; }
+/* TRAY */
+#tray{position:absolute;bottom:0;left:0;right:0;z-index:150;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;justify-content:space-around;align-items:center;background:linear-gradient(0deg,rgba(240,236,224,.97) 70%,transparent 100%);backdrop-filter:blur(6px);pointer-events:none}
+#sheet.half~#tray,#sheet.full~#tray{display:none}
+.tray-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;transition:background .12s;pointer-events:all}
+.tray-btn:hover{background:var(–paper-2)}
+.tray-btn .ic{font-size:18px;line-height:1}
+.tray-btn span:last-child{font-family:‘DM Mono’,monospace;font-size:9px;color:var(–ink-3);letter-spacing:.04em}
 
-/* ── HEADER ──────────────────────────────────────── */
-#header {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  padding: 14px 16px 10px;
-  background: linear-gradient(180deg, rgba(240,236,224,.96) 70%, rgba(240,236,224,0) 100%);
-  backdrop-filter: blur(4px);
-}
-
-.header-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.wordmark {
-  font-family: 'Spectral', serif;
-  font-style: italic;
-  font-weight: 300;
-  font-size: 22px;
-  letter-spacing: -.01em;
-  color: var(--ink);
-  flex-shrink: 0;
-  line-height: 1;
-}
-.wordmark span { color: var(--forest); }
-
-.search-wrap {
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.search-icon {
-  position: absolute;
-  left: 10px;
-  color: var(--ink-4);
-  font-size: 14px;
-  pointer-events: none;
-}
-.search-in {
-  width: 100%;
-  background: var(--paper-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 7px 10px 7px 30px;
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--ink);
-  outline: none;
-  transition: border-color .15s;
-}
-.search-in::placeholder { color: var(--ink-4); }
-.search-in:focus { border-color: rgba(30,26,20,.3); }
-
-.ar-btn {
-  background: var(--ink);
-  color: var(--paper);
-  border: none;
-  border-radius: 6px;
-  padding: 7px 12px;
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  letter-spacing: .05em;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .15s;
-}
-.ar-btn:hover { background: var(--ink-2); }
-
-/* ── FILTER STRIP ────────────────────────────────── */
-#filters {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 8px 0 2px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-#filters::-webkit-scrollbar { display: none; }
-
-.chip {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.5);
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  letter-spacing: .04em;
-  color: var(--ink-3);
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.chip.on {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-.chip-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: .6;
-}
-.chip.on .chip-dot { opacity: .8; }
-
-/* ── BOTTOM SHEET ────────────────────────────────── */
-#sheet {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  z-index: 200;
-  background: var(--paper);
-  border-radius: 16px 16px 0 0;
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -4px 40px rgba(30,26,20,.12);
-  max-height: 82dvh;
-  display: flex;
-  flex-direction: column;
-  transform: translateY(calc(100% - 56px));
-  transition: transform .32s cubic-bezier(.32,.72,0,1);
-}
-#sheet.peek { transform: translateY(calc(100% - 56px)); }
-#sheet.half { transform: translateY(calc(100% - 52dvh)); }
-#sheet.full { transform: translateY(0); }
-
-.sheet-handle-wrap {
-  padding: 10px 0 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.sheet-handle {
-  width: 36px; height: 4px;
-  background: var(--ink-4);
-  border-radius: 2px;
-  opacity: .35;
-}
-.sheet-count {
-  font-size: 10px;
-  color: var(--ink-4);
-  letter-spacing: .06em;
-}
-
-.sheet-detail {
-  flex-shrink: 0;
-  padding: 0 16px 12px;
-  border-bottom: 1px solid var(--border);
-  display: none;
-}
-.sheet-detail.visible { display: block; }
-
-.detail-type-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border-radius: 3px;
-  font-size: 9px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--paper);
-  margin-bottom: 8px;
-}
-.detail-name {
-  font-family: 'Spectral', serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: 20px;
-  color: var(--ink);
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-.detail-address {
-  font-size: 10px;
-  color: var(--ink-3);
-  margin-bottom: 10px;
-  letter-spacing: .03em;
-}
-.detail-desc {
-  font-family: 'EB Garamond', serif;
-  font-size: 14px;
-  color: var(--ink-2);
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.detail-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.meta-item {
-  background: var(--paper-2);
-  border-radius: 6px;
-  padding: 8px 10px;
-}
-.meta-label {
-  font-size: 8px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-  margin-bottom: 3px;
-}
-.meta-value {
-  font-size: 11px;
-  color: var(--ink);
-  font-weight: 500;
-}
-
-.detail-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-.detail-tag {
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  font-size: 9px;
-  color: var(--ink-3);
-  letter-spacing: .04em;
-}
-
-.occ-bar-wrap { margin-bottom: 12px; }
-.occ-bar-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: var(--ink-4);
-  margin-bottom: 5px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-.occ-bar-track {
-  height: 4px;
-  background: var(--paper-3);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.occ-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width .6s ease;
-}
-
-.detail-actions {
-  display: flex;
-  gap: 8px;
-}
-.action-btn {
-  flex: 1;
-  padding: 9px;
-  border-radius: 6px;
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  letter-spacing: .06em;
-  cursor: pointer;
-  transition: all .15s;
-  text-align: center;
-  border: 1px solid var(--border);
-  background: var(--paper-2);
-  color: var(--ink);
-}
-.action-btn.primary {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-
-.sheet-list {
-  overflow-y: auto;
-  flex: 1;
-  padding: 6px 0 env(safe-area-inset-bottom, 0);
-  scrollbar-width: thin;
-  scrollbar-color: var(--paper-3) transparent;
-}
-
-.list-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background .12s;
-}
-.list-item:hover, .list-item.active { background: var(--paper-2); }
-
-.list-icon {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-.list-body { flex: 1; min-width: 0; }
-.list-name {
-  font-family: 'Spectral', serif;
-  font-style: italic;
-  font-size: 15px;
-  color: var(--ink);
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.list-sub {
-  font-size: 9px;
-  color: var(--ink-3);
-  letter-spacing: .04em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.list-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.list-occ {
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  color: var(--paper);
-  letter-spacing: .04em;
-}
-.list-noise {
-  font-size: 9px;
-  color: var(--ink-4);
-}
-
-/* ── LEGEND ──────────────────────────────────────── */
-#legend {
-  position: absolute;
-  top: 100px;
-  right: 16px;
-  z-index: 100;
-  background: rgba(240,236,224,.92);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  box-shadow: 0 2px 16px var(--shadow);
-  backdrop-filter: blur(8px);
-  min-width: 130px;
-  display: none;
-}
-#legend.visible { display: block; }
-
-.legend-title {
-  font-size: 8px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-  margin-bottom: 8px;
-}
-.legend-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-.legend-dot {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.legend-label { font-size: 10px; color: var(--ink-2); }
-
-/* ── TRAY BUTTONS ────────────────────────────────── */
-#tray {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  z-index: 150;
-  padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 10px);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: linear-gradient(0deg, rgba(240,236,224,.97) 70%, transparent 100%);
-  backdrop-filter: blur(6px);
-  pointer-events: none;
-}
-#sheet.half ~ #tray,
-#sheet.full ~ #tray { display: none; }
-
-.tray-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  transition: background .12s;
-  pointer-events: all;
-}
-.tray-btn:hover { background: var(--paper-2); }
-.tray-btn .ic {
-  font-size: 18px;
-  line-height: 1;
-}
-.tray-btn span:last-child {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  color: var(--ink-3);
-  letter-spacing: .04em;
-}
-
-.legend-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  transition: background .12s;
-  pointer-events: all;
-}
-.legend-btn:hover { background: var(--paper-2); }
-.legend-btn .ic { font-size: 18px; line-height: 1; }
-.legend-btn span:last-child {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  color: var(--ink-3);
-  letter-spacing: .04em;
-}
-
-/* ── TOOLTIP ─────────────────────────────────────── */
-.pin-tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--ink);
-  color: var(--paper);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 10px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .15s;
-  z-index: 200;
-  letter-spacing: .03em;
-  min-width: 120px;
-  text-align: center;
-}
-.pin-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--ink);
-}
-.pin:hover .pin-tooltip { opacity: 1; }
-
-/* ── TOAST ───────────────────────────────────────── */
-#toast {
-  position: absolute;
-  top: 90px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-12px);
-  background: var(--ink);
-  color: var(--paper);
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 11px;
-  letter-spacing: .04em;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  z-index: 999;
-  transition: opacity .2s, transform .2s;
-}
-#toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* ── ME DOT ──────────────────────────────────────── */
-.me {
-  position: absolute;
-  width: 14px; height: 14px;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 20;
-}
-.me-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: rgba(46,92,62,.15);
-  animation: me-pulse 2.5s ease-in-out infinite;
-}
-.me-dot {
-  position: absolute;
-  inset: 2px;
-  border-radius: 50%;
-  background: var(--forest);
-  border: 2px solid var(--paper);
-  box-shadow: 0 1px 6px rgba(30,26,20,.3);
-}
-@keyframes me-pulse {
-  0%, 100% { transform: scale(1); opacity: .4; }
-  50% { transform: scale(1.6); opacity: .15; }
-}
+/* TOAST */
+#toast{position:absolute;top:90px;left:50%;transform:translateX(-50%) translateY(-12px);background:var(–ink);color:var(–paper);border-radius:8px;padding:8px 16px;font-size:11px;letter-spacing:.04em;white-space:nowrap;pointer-events:none;opacity:0;z-index:999;transition:opacity .2s,transform .2s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
+
 </head>
 <body>
 
-<!-- MAP -->
+<!-- MAP — San Diego: Downtown at bottom-center, Balboa Park center, Mission Bay upper-left, La Jolla upper-right, Ocean at left/bottom -->
+
 <div id="map-wrap">
-  <svg id="map-svg" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-    <!-- city blocks (SF-inspired grid) -->
-    <rect class="block" x="0" y="0" width="400" height="700"/>
+<svg id="map-svg" viewBox="0 0 420 960" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
 
-    <!-- parks -->
-    <rect class="park" x="20" y="80" width="60" height="55" rx="3"/>
-    <rect class="park" x="260" y="120" width="90" height="70" rx="3"/>
-    <rect class="park" x="140" y="380" width="45" height="40" rx="3"/>
-    <rect class="park" x="310" y="460" width="55" height="65" rx="3"/>
+  <!-- BASE -->
 
-    <!-- water suggestion -->
-    <rect class="water" x="330" y="0" width="70" height="200" rx="2"/>
-    <path class="water" d="M0,640 Q60,620 120,645 T240,635 T400,640 L400,700 L0,700 Z"/>
+  <rect fill="#f0ece0" x="0" y="0" width="420" height="960"/>
 
-    <!-- blocks -->
-    <rect class="block" x="18" y="148" width="52" height="30" rx="1"/>
-    <rect class="block" x="80" y="148" width="65" height="30" rx="1"/>
-    <rect class="block" x="155" y="148" width="55" height="30" rx="1"/>
-    <rect class="block" x="220" y="148" width="30" height="30" rx="1"/>
-    <rect class="block" x="18" y="190" width="52" height="38" rx="1"/>
-    <rect class="block" x="80" y="190" width="65" height="38" rx="1"/>
-    <rect class="block" x="155" y="190" width="55" height="38" rx="1"/>
-    <rect class="block" x="220" y="190" width="30" height="38" rx="1"/>
-    <rect class="block" x="260" y="205" width="50" height="38" rx="1"/>
-    <rect class="block" x="18" y="245" width="52" height="42" rx="1"/>
-    <rect class="block" x="80" y="245" width="65" height="42" rx="1"/>
-    <rect class="block" x="155" y="245" width="55" height="42" rx="1"/>
-    <rect class="block" x="220" y="245" width="30" height="42" rx="1"/>
-    <rect class="block" x="260" y="255" width="50" height="42" rx="1"/>
-    <rect class="block" x="18" y="300" width="52" height="35" rx="1"/>
-    <rect class="block" x="80" y="300" width="65" height="35" rx="1"/>
-    <rect class="block" x="155" y="300" width="55" height="35" rx="1"/>
-    <rect class="block" x="260" y="310" width="50" height="35" rx="1"/>
-    <rect class="block" x="18" y="350" width="52" height="25" rx="1"/>
-    <rect class="block" x="80" y="350" width="65" height="25" rx="1"/>
-    <rect class="block" x="200" y="350" width="50" height="25" rx="1"/>
-    <rect class="block" x="260" y="355" width="50" height="25" rx="1"/>
-    <rect class="block" x="18" y="430" width="52" height="40" rx="1"/>
-    <rect class="block" x="80" y="430" width="65" height="40" rx="1"/>
-    <rect class="block" x="155" y="430" width="55" height="40" rx="1"/>
-    <rect class="block" x="220" y="430" width="30" height="40" rx="1"/>
-    <rect class="block" x="18" y="490" width="52" height="38" rx="1"/>
-    <rect class="block" x="80" y="490" width="65" height="38" rx="1"/>
-    <rect class="block" x="155" y="490" width="55" height="38" rx="1"/>
-    <rect class="block" x="220" y="490" width="30" height="38" rx="1"/>
-    <rect class="block" x="18" y="550" width="52" height="38" rx="1"/>
-    <rect class="block" x="80" y="550" width="65" height="38" rx="1"/>
-    <rect class="block" x="155" y="550" width="55" height="38" rx="1"/>
+  <!-- ═══════════════════════════════════════════════════
+       NORTH COAST — Del Mar · Solana Beach · Cardiff
+                     Encinitas · Leucadia · Carlsbad
+       y=0 (Carlsbad/Leucadia) → y=240 (La Jolla border)
+       ═══════════════════════════════════════════════════ -->
 
-    <!-- major roads -->
-    <line class="major-road" x1="0" y1="145" x2="330" y2="145" stroke-width="8"/>
-    <line class="major-road" x1="0" y1="240" x2="280" y2="240" stroke-width="6"/>
-    <line class="major-road" x1="0" y1="340" x2="310" y2="340" stroke-width="6"/>
-    <line class="major-road" x1="0" y1="425" x2="320" y2="425" stroke-width="5"/>
-    <line class="major-road" x1="0" y1="535" x2="320" y2="535" stroke-width="5"/>
-    <line class="major-road" x1="75" y1="140" x2="75" y2="700" stroke-width="6"/>
-    <line class="major-road" x1="150" y1="100" x2="150" y2="700" stroke-width="5"/>
-    <line class="major-road" x1="255" y1="120" x2="255" y2="600" stroke-width="5"/>
+  <!-- OCEAN — full left strip north coast -->
 
-    <!-- minor roads -->
-    <line class="minor-road" x1="0" y1="185" x2="260" y2="185" stroke-width="3"/>
-    <line class="minor-road" x1="0" y1="290" x2="260" y2="290" stroke-width="3"/>
-    <line class="minor-road" x1="0" y1="380" x2="320" y2="380" stroke-width="3"/>
-    <line class="minor-road" x1="0" y1="480" x2="260" y2="480" stroke-width="3"/>
-    <line class="minor-road" x1="0" y1="580" x2="260" y2="580" stroke-width="3"/>
-    <line class="minor-road" x1="18" y1="140" x2="18" y2="640" stroke-width="2.5"/>
-    <line class="minor-road" x1="110" y1="140" x2="110" y2="640" stroke-width="2.5"/>
-    <line class="minor-road" x1="210" y1="140" x2="210" y2="600" stroke-width="2.5"/>
-    <line class="minor-road" x1="305" y1="200" x2="305" y2="540" stroke-width="2.5"/>
+  <path class="ocean" d="M0,0 L58,0 L60,40 L56,80 L52,120 L48,160 L44,200 L40,240 L0,240 Z"/>
 
-    <!-- grid overlay -->
-    <line class="grid-line" x1="0" y1="50" x2="400" y2="50" stroke-width="1"/>
-    <line class="grid-line" x1="0" y1="630" x2="400" y2="630" stroke-width="1"/>
-    <line class="grid-line" x1="40" y1="0" x2="40" y2="700" stroke-width="1"/>
-    <line class="grid-line" x1="360" y1="0" x2="360" y2="700" stroke-width="1"/>
+  <!-- BEACH STRIPS — north coast -->
 
-    <!-- street labels -->
-    <text class="label" x="37" y="141" transform="rotate(-90, 37, 141)" font-size="7">DIVISADERO</text>
-    <text class="label" x="113" y="141" transform="rotate(-90, 113, 141)" font-size="7">FILLMORE</text>
-    <text class="label" x="213" y="141" transform="rotate(-90, 213, 141)" font-size="7">OCTAVIA</text>
-    <text class="label" x="258" y="141" transform="rotate(-90, 258, 141)" font-size="7">GOUGH</text>
-    <text class="label" x="100" y="242" font-size="7">FELL ST</text>
-    <text class="label" x="100" y="342" font-size="7">GROVE ST</text>
-    <text class="label" x="100" y="427" font-size="7">HAYES ST</text>
+  <rect class="beach" x="0" y="0" width="58" height="40"/>
+  <rect class="beach" x="0" y="42" width="56" height="36"/>
+  <rect class="beach" x="0" y="80" width="54" height="36"/>
+  <rect class="beach" x="0" y="118" width="52" height="36"/>
+  <rect class="beach" x="0" y="156" width="50" height="38"/>
 
-    <!-- district labels -->
-    <text class="district-label" x="130" y="95" font-size="10">The Panhandle</text>
-    <text class="district-label" x="290" y="165" font-size="10">Alamo Square</text>
-    <text class="district-label" x="100" y="460" font-size="10">Hayes Valley</text>
-    <text class="district-label" x="40" y="340" font-size="9">NoPa</text>
-    <text class="district-label" x="195" y="570" font-size="9">Civic Center</text>
-    <text class="district-label" x="55" y="590" font-size="9">Lower Haight</text>
-  </svg>
+  <!-- SAN ELIJO LAGOON (Cardiff) -->
 
-  <!-- current location -->
-  <div class="me" style="left:38%;top:55%">
-    <div class="me-ring"></div>
-    <div class="me-dot"></div>
+  <path class="water" d="M52,148 Q80,140 115,148 Q135,155 130,168 Q122,180 95,178 Q68,176 55,165 Q48,158 52,148 Z"/>
+
+  <!-- BATIQUITOS LAGOON (Carlsbad/Leucadia border) -->
+
+  <path class="water" d="M55,35 Q85,28 120,35 Q138,42 132,52 Q122,62 95,60 Q68,58 57,48 Q52,42 55,35 Z"/>
+
+  <!-- TORREY PINES STATE RESERVE (between La Jolla & Del Mar) -->
+
+  <path class="park" d="M60,215 Q100,208 140,214 Q155,220 150,232 Q140,245 105,242 Q70,240 60,228 Z"/>
+  <!-- Los Penasquitos Canyon Preserve -->
+  <path class="canyon" d="M195,205 Q225,198 258,208 Q268,218 260,228 Q246,238 215,234 Q192,230 190,218 Z"/>
+
+  <!-- SYCAMORE CANYON / San Dieguito -->
+
+  <path class="canyon" d="M270,85 Q300,78 330,86 Q342,94 336,104 Q324,114 298,110 Q272,106 268,95 Z"/>
+
+  <!-- NORTH COAST CITY BLOCKS -->
+
+  <!-- Carlsbad strip -->
+
+  <rect class="block" x="68" y="5" width="55" height="22" rx="1"/>
+  <rect class="block" x="128" y="5" width="48" height="22" rx="1"/>
+  <rect class="block" x="182" y="8" width="42" height="18" rx="1"/>
+  <rect class="block" x="68" y="32" width="55" height="20" rx="1"/>
+  <rect class="block" x="128" y="32" width="48" height="20" rx="1"/>
+
+  <!-- Leucadia -->
+
+  <rect class="block" x="66" y="58" width="52" height="22" rx="1"/>
+  <rect class="block" x="124" y="58" width="46" height="22" rx="1"/>
+  <rect class="block" x="176" y="60" width="40" height="18" rx="1"/>
+  <rect class="block" x="66" y="86" width="52" height="20" rx="1"/>
+  <rect class="block" x="124" y="86" width="46" height="20" rx="1"/>
+  <rect class="block" x="176" y="86" width="40" height="20" rx="1"/>
+
+  <!-- Encinitas -->
+
+  <rect class="block" x="64" y="112" width="50" height="24" rx="1"/>
+  <rect class="block" x="120" y="112" width="44" height="24" rx="1"/>
+  <rect class="block" x="170" y="114" width="38" height="20" rx="1"/>
+  <rect class="block" x="214" y="114" width="36" height="20" rx="1"/>
+  <rect class="block" x="64" y="140" width="50" height="20" rx="1"/>
+  <rect class="block" x="120" y="140" width="44" height="20" rx="1"/>
+
+  <!-- Cardiff -->
+
+  <rect class="block" x="62" y="168" width="46" height="22" rx="1"/>
+  <rect class="block" x="114" y="168" width="42" height="22" rx="1"/>
+  <rect class="block" x="162" y="170" width="36" height="18" rx="1"/>
+
+  <!-- Solana Beach -->
+
+  <rect class="block" x="60" y="196" width="44" height="22" rx="1"/>
+  <rect class="block" x="110" y="196" width="38" height="22" rx="1"/>
+  <rect class="block" x="154" y="198" width="34" height="18" rx="1"/>
+
+  <!-- Del Mar -->
+
+  <rect class="block" x="58" y="222" width="42" height="18" rx="1"/>
+  <rect class="block" x="106" y="222" width="36" height="18" rx="1"/>
+  <rect class="block" x="148" y="224" width="32" height="14" rx="1"/>
+
+  <!-- Rancho Santa Fe / inland areas -->
+
+  <rect class="block" x="260" y="38" width="50" height="24" rx="1"/>
+  <rect class="block" x="316" y="38" width="44" height="24" rx="1"/>
+  <rect class="block" x="260" y="66" width="50" height="22" rx="1"/>
+  <rect class="block" x="316" y="66" width="44" height="22" rx="1"/>
+  <rect class="block" x="260" y="120" width="50" height="22" rx="1"/>
+  <rect class="block" x="316" y="120" width="44" height="22" rx="1"/>
+  <rect class="block" x="260" y="148" width="50" height="22" rx="1"/>
+  <rect class="block" x="316" y="148" width="44" height="22" rx="1"/>
+
+  <!-- ═══════════════════════════════════════════════════
+       EXISTING CITY — shifted down 240px from original
+       ═══════════════════════════════════════════════════ -->
+
+  <!-- PACIFIC OCEAN — left edge, city section -->
+
+  <path class="ocean" d="M0,240 L40,240 L44,320 L40,400 L36,480 L30,560 L25,640 L20,720 L16,800 L0,960 Z"/>
+
+  <!-- SAN DIEGO BAY — bottom right -->
+
+  <path class="bay" d="M260,760 Q290,730 320,740 Q350,750 360,790 Q370,830 340,860 Q310,890 280,880 Q250,870 240,840 Q230,810 260,760 Z"/>
+  <path class="bay" d="M300,860 Q320,850 340,870 Q355,890 345,920 Q330,950 300,940 Q270,930 270,900 Q270,870 300,860 Z"/>
+
+  <!-- MISSION BAY -->
+
+  <path class="water" d="M50,360 Q80,340 120,350 Q150,360 155,390 Q160,420 140,435 Q120,450 90,445 Q60,440 48,415 Q36,390 50,360 Z"/>
+  <path class="water" d="M88,430 Q110,425 125,440 Q140,455 130,475 Q118,490 95,485 Q72,480 68,460 Q64,440 88,430 Z"/>
+
+  <!-- BALBOA PARK -->
+
+  <rect class="park" x="230" y="490" width="80" height="120" rx="4"/>
+  <!-- PRESIDIO PARK -->
+  <ellipse class="park" cx="120" cy="550" rx="22" ry="28"/>
+  <!-- MISSION HILLS GREEN -->
+  <rect class="park" x="140" y="510" width="30" height="22" rx="3"/>
+
+  <!-- CANYON LANDS -->
+
+  <path class="canyon" d="M155,380 Q175,370 195,385 Q205,400 195,415 Q180,425 160,418 Q145,410 145,395 Z"/>
+  <path class="canyon" d="M195,440 Q215,432 230,445 Q240,458 230,470 Q218,480 200,474 Q185,468 185,455 Z"/>
+
+  <!-- BEACH AREAS — city -->
+
+  <rect class="beach" x="0" y="330" width="62" height="35"/>
+  <rect class="beach" x="0" y="370" width="55" height="30"/>
+  <rect class="beach" x="0" y="620" width="42" height="40"/>
+
+  <!-- CITY BLOCKS — Downtown / Gaslamp -->
+
+  <rect class="block" x="260" y="730" width="38" height="22" rx="1"/>
+  <rect class="block" x="305" y="730" width="32" height="22" rx="1"/>
+  <rect class="block" x="260" y="758" width="38" height="20" rx="1"/>
+  <rect class="block" x="305" y="758" width="32" height="20" rx="1"/>
+  <rect class="block" x="225" y="730" width="28" height="22" rx="1"/>
+  <rect class="block" x="225" y="758" width="28" height="20" rx="1"/>
+  <rect class="block" x="190" y="730" width="28" height="42" rx="1"/>
+
+  <!-- Hillcrest -->
+
+  <rect class="block" x="175" y="580" width="40" height="28" rx="1"/>
+  <rect class="block" x="175" y="614" width="40" height="28" rx="1"/>
+  <rect class="block" x="220" y="580" width="32" height="28" rx="1"/>
+  <rect class="block" x="220" y="614" width="32" height="28" rx="1"/>
+
+  <!-- North Park / South Park -->
+
+  <rect class="block" x="270" y="590" width="42" height="26" rx="1"/>
+  <rect class="block" x="270" y="622" width="42" height="26" rx="1"/>
+  <rect class="block" x="318" y="590" width="36" height="54" rx="1"/>
+  <rect class="block" x="270" y="654" width="84" height="24" rx="1"/>
+
+  <!-- Normal Heights / University Heights -->
+
+  <rect class="block" x="270" y="530" width="42" height="24" rx="1"/>
+  <rect class="block" x="270" y="560" width="42" height="24" rx="1"/>
+  <rect class="block" x="318" y="530" width="36" height="54" rx="1"/>
+
+  <!-- Mission Hills -->
+
+  <rect class="block" x="140" y="535" width="35" height="24" rx="1"/>
+  <rect class="block" x="140" y="565" width="35" height="24" rx="1"/>
+  <rect class="block" x="180" y="535" width="28" height="24" rx="1"/>
+
+  <!-- Old Town -->
+
+  <rect class="block" x="108" y="500" width="38" height="28" rx="1"/>
+  <rect class="block" x="108" y="534" width="38" height="26" rx="1"/>
+
+  <!-- Mission Valley -->
+
+  <rect class="block" x="195" y="465" width="50" height="22" rx="1"/>
+  <rect class="block" x="250" y="465" width="40" height="22" rx="1"/>
+  <rect class="block" x="195" y="492" width="30" height="20" rx="1"/>
+
+  <!-- Midtown / Bankers Hill -->
+
+  <rect class="block" x="188" y="640" width="35" height="26" rx="1"/>
+  <rect class="block" x="188" y="672" width="35" height="26" rx="1"/>
+  <rect class="block" x="188" y="704" width="35" height="22" rx="1"/>
+  <rect class="block" x="228" y="680" width="30" height="26" rx="1"/>
+  <rect class="block" x="228" y="710" width="30" height="20" rx="1"/>
+
+  <!-- Little Italy / Waterfront -->
+
+  <rect class="block" x="188" y="780" width="32" height="24" rx="1"/>
+  <rect class="block" x="188" y="810" width="32" height="22" rx="1"/>
+  <rect class="block" x="224" y="780" width="30" height="46" rx="1"/>
+
+  <!-- East Village / Barrio Logan -->
+
+  <rect class="block" x="340" y="730" width="36" height="22" rx="1"/>
+  <rect class="block" x="340" y="758" width="36" height="22" rx="1"/>
+  <rect class="block" x="340" y="786" width="36" height="22" rx="1"/>
+  <rect class="block" x="382" y="730" width="35" height="80" rx="1"/>
+
+  <!-- University City / La Jolla -->
+
+  <rect class="block" x="340" y="360" width="42" height="30" rx="1"/>
+  <rect class="block" x="340" y="395" width="42" height="30" rx="1"/>
+  <rect class="block" x="340" y="430" width="42" height="30" rx="1"/>
+  <rect class="block" x="388" y="360" width="30" height="100" rx="1"/>
+
+  <!-- Clairemont / Kearny Mesa -->
+
+  <rect class="block" x="200" y="360" width="44" height="28" rx="1"/>
+  <rect class="block" x="200" y="393" width="44" height="28" rx="1"/>
+  <rect class="block" x="248" y="360" width="38" height="60" rx="1"/>
+
+  <!-- College Area / SDSU -->
+
+  <rect class="block" x="355" y="560" width="38" height="30" rx="1"/>
+  <rect class="block" x="355" y="595" width="38" height="30" rx="1"/>
+  <rect class="block" x="355" y="630" width="38" height="30" rx="1"/>
+  <rect class="block" x="395" y="560" width="22" height="100" rx="1"/>
+
+  <!-- Ocean Beach / Point Loma -->
+
+  <rect class="block" x="42" y="620" width="36" height="26" rx="1"/>
+  <rect class="block" x="42" y="652" width="36" height="26" rx="1"/>
+  <rect class="block" x="82" y="620" width="32" height="56" rx="1"/>
+
+  <!-- MAJOR ROADS — extended full height -->
+
+  <!-- I-5 (vertical, full coast) -->
+
+  <line class="major-road" x1="255" y1="0" x2="255" y2="960" stroke-width="7"/>
+  <!-- Coast Hwy 101 (north coast, west of I-5) -->
+  <path class="major-road" d="M72,0 Q74,50 76,100 Q78,150 80,200 Q82,235 85,260" stroke-width="5" fill="none"/>
+  <!-- I-8 (horizontal) -->
+  <line class="major-road" x1="0" y1="505" x2="420" y2="505" stroke-width="6"/>
+  <!-- SR-163 -->
+  <path class="major-road" d="M233,440 Q238,480 240,520 Q242,560 245,600 Q248,640 252,680 Q255,710 258,740" stroke-width="5" fill="none"/>
+  <!-- University Ave (horizontal) -->
+  <line class="major-road" x1="120" y1="570" x2="420" y2="570" stroke-width="5"/>
+  <!-- Washington St -->
+  <line class="major-road" x1="85" y1="530" x2="310" y2="530" stroke-width="4"/>
+  <!-- Balboa Ave -->
+  <line class="major-road" x1="140" y1="415" x2="420" y2="415" stroke-width="5"/>
+  <!-- Harbor Drive -->
+  <line class="major-road" x1="180" y1="840" x2="420" y2="820" stroke-width="5"/>
+  <!-- 5th Ave -->
+  <line class="major-road" x1="200" y1="600" x2="200" y2="860" stroke-width="4"/>
+  <line class="major-road" x1="220" y1="600" x2="220" y2="840" stroke-width="3"/>
+  <!-- Park Blvd -->
+  <line class="major-road" x1="320" y1="440" x2="320" y2="800" stroke-width="4"/>
+  <!-- 30th St -->
+  <line class="major-road" x1="358" y1="500" x2="358" y2="690" stroke-width="4"/>
+  <!-- Rosecrans -->
+  <line class="major-road" x1="40" y1="635" x2="185" y2="630" stroke-width="4"/>
+  <!-- Mission Bay Dr -->
+  <path class="major-road" d="M62,345 Q90,330 125,340 Q155,350 165,380 Q170,405 155,425" stroke-width="4" fill="none"/>
+  <!-- Garnet Ave (PB) -->
+  <line class="major-road" x1="42" y1="395" x2="175" y2="395" stroke-width="4"/>
+  <!-- Torrey Pines Rd -->
+  <line class="major-road" x1="200" y1="335" x2="420" y2="325" stroke-width="4"/>
+  <!-- Via de la Valle / Del Mar -->
+  <line class="major-road" x1="60" y1="228" x2="310" y2="220" stroke-width="4"/>
+  <!-- Lomas Santa Fe (Solana Beach) -->
+  <line class="major-road" x1="62" y1="200" x2="285" y2="194" stroke-width="3"/>
+  <!-- Birmingham Drive (Cardiff/Encinitas) -->
+  <line class="major-road" x1="64" y1="170" x2="260" y2="164" stroke-width="3"/>
+  <!-- Encinitas Blvd -->
+  <line class="major-road" x1="65" y1="128" x2="285" y2="122" stroke-width="4"/>
+  <!-- Leucadia Blvd -->
+  <line class="major-road" x1="67" y1="96" x2="270" y2="90" stroke-width="3"/>
+  <!-- Carlsbad Village Dr -->
+  <line class="major-road" x1="68" y1="30" x2="270" y2="24" stroke-width="4"/>
+  <!-- El Camino Real (inland parallel, north coast) -->
+  <line class="major-road" x1="200" y1="0" x2="210" y2="240" stroke-width="4"/>
+
+  <!-- MINOR ROADS -->
+
+  <line class="minor-road" x1="0" y1="470" x2="420" y2="470" stroke-width="2.5"/>
+  <line class="minor-road" x1="0" y1="600" x2="420" y2="600" stroke-width="2.5"/>
+  <line class="minor-road" x1="0" y1="670" x2="420" y2="670" stroke-width="2.5"/>
+  <line class="minor-road" x1="120" y1="440" x2="120" y2="740" stroke-width="2.5"/>
+  <line class="minor-road" x1="160" y1="440" x2="160" y2="790" stroke-width="2.5"/>
+  <line class="minor-road" x1="290" y1="440" x2="290" y2="800" stroke-width="2.5"/>
+  <line class="minor-road" x1="380" y1="440" x2="380" y2="780" stroke-width="2.5"/>
+  <line class="minor-road" x1="0" y1="720" x2="260" y2="720" stroke-width="2"/>
+  <line class="minor-road" x1="0" y1="780" x2="260" y2="780" stroke-width="2"/>
+  <line class="minor-road" x1="180" y1="680" x2="420" y2="680" stroke-width="2"/>
+  <!-- North coast minor -->
+  <line class="minor-road" x1="68" y1="60" x2="260" y2="56" stroke-width="2"/>
+  <line class="minor-road" x1="66" y1="142" x2="250" y2="138" stroke-width="2"/>
+  <line class="minor-road" x1="130" y1="0" x2="135" y2="240" stroke-width="2"/>
+  <line class="minor-road" x1="180" y1="0" x2="185" y2="240" stroke-width="2"/>
+  <line class="minor-road" x1="270" y1="30" x2="280" y2="220" stroke-width="2"/>
+
+  <!-- GRID LINES -->
+
+  <line class="grid-line" x1="0" y1="40" x2="420" y2="40" stroke-width="1"/>
+  <line class="grid-line" x1="0" y1="920" x2="420" y2="920" stroke-width="1"/>
+  <line class="grid-line" x1="30" y1="0" x2="30" y2="960" stroke-width="1"/>
+  <line class="grid-line" x1="390" y1="0" x2="390" y2="960" stroke-width="1"/>
+  <line class="grid-line" x1="0" y1="240" x2="420" y2="240" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- STREET LABELS — north coast -->
+
+<text class="label" x="72" y="28" font-size="6">CARLSBAD VILLAGE DR</text>
+<text class="label" x="70" y="93" font-size="6">LEUCADIA BLVD</text>
+<text class="label" x="70" y="126" font-size="6">ENCINITAS BLVD</text>
+<text class="label" x="68" y="168" font-size="6">BIRMINGHAM DR</text>
+<text class="label" x="68" y="198" font-size="6">LOMAS SANTA FE</text>
+<text class="label" x="68" y="226" font-size="6">VIA DE LA VALLE</text>
+<text class="label" x="75" y="15" transform="rotate(-90,75,15)" font-size="6">HWY 101</text>
+<text class="label" x="207" y="15" transform="rotate(-90,207,15)" font-size="6">EL CAMINO REAL</text>
+<text class="label" x="255" y="255" transform="rotate(-90,255,255)" font-size="7">I-5</text>
+
+  <!-- STREET LABELS — city -->
+
+<text class="label" x="200" y="502" font-size="7">I-8</text>
+<text class="label" x="270" y="567" font-size="7">UNIVERSITY AVE</text>
+<text class="label" x="180" y="527" font-size="7">WASHINGTON ST</text>
+<text class="label" x="270" y="412" font-size="7">BALBOA AVE</text>
+<text class="label" x="320" y="435" transform="rotate(-90,320,435)" font-size="6">PARK BLVD</text>
+<text class="label" x="358" y="495" transform="rotate(-90,358,495)" font-size="6">30TH ST</text>
+<text class="label" x="200" y="595" transform="rotate(-90,200,595)" font-size="6">5TH AVE</text>
+<text class="label" x="110" y="392" font-size="6">GARNET AVE</text>
+
+  <!-- DISTRICT LABELS — north coast -->
+
+<text class="district-label" x="150" y="22" font-size="10">Carlsbad</text>
+<text class="district-label" x="145" y="80" font-size="10">Leucadia</text>
+<text class="district-label" x="148" y="136" font-size="10">Encinitas</text>
+<text class="district-label" x="140" y="185" font-size="9">Cardiff-by-the-Sea</text>
+<text class="district-label" x="132" y="214" font-size="9">Solana Beach</text>
+<text class="district-label" x="118" y="238" font-size="9">Del Mar</text>
+<text class="district-label" x="310" y="55" font-size="8">Rancho Santa Fe</text>
+<text class="district-label" x="105" y="242" font-size="7" opacity=".5">Torrey Pines</text>
+
+  <!-- DISTRICT LABELS — city -->
+
+<text class="district-label" x="290" y="780" font-size="11">Downtown</text>
+<text class="district-label" x="210" y="640" font-size="9">Hillcrest</text>
+<text class="district-label" x="305" y="630" font-size="9">North Park</text>
+<text class="district-label" x="305" y="558" font-size="8">Normal Hts</text>
+<text class="district-label" x="158" y="558" font-size="9">Mission Hills</text>
+<text class="district-label" x="127" y="518" font-size="8">Old Town</text>
+<text class="district-label" x="270" y="435" font-size="8">Mission Valley</text>
+<text class="district-label" x="375" y="440" font-size="9">La Jolla</text>
+<text class="district-label" x="228" y="510" font-size="9">Balboa Park</text>
+<text class="district-label" x="375" y="598" font-size="8">SDSU</text>
+<text class="district-label" x="215" y="720" font-size="8">Bankers Hill</text>
+<text class="district-label" x="220" y="805" font-size="8">Little Italy</text>
+<text class="district-label" x="366" y="756" font-size="8">East Village</text>
+<text class="district-label" x="65" y="655" font-size="8">Ocean Beach</text>
+<text class="district-label" x="85" y="420" font-size="8">Pacific Beach</text>
+<text class="district-label" x="100" y="380" font-size="8">Mission Beach</text>
+<text class="district-label" x="226" y="388" font-size="8">Clairemont</text>
+
+  <!-- WATER LABELS -->
+
+<text class="water-label" x="320" y="818">San Diego Bay</text>
+<text class="water-label" x="102" y="402">Mission Bay</text>
+<text class="water-label" x="22" y="440">Pacific</text>
+<text class="water-label" x="22" y="453">Ocean</text>
+<text class="water-label" x="92" y="158">San Elijo Lagoon</text>
+<text class="water-label" x="88" y="47">Batiquitos Lagoon</text>
+<text class="water-label" x="22" y="120">Pacific Ocean</text>
+</svg>
+
+<div class="me" style="left:50%;top:79%"><div class="me-ring"></div><div class="me-dot"></div></div>
+<div id="pins-layer"></div>
+</div>
+
+<!-- SCRIM -->
+
+<div id="drawer-scrim" onclick="closeDrawer()"></div>
+
+<!-- FILTER DRAWER -->
+
+<div id="filter-drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">Filter spaces</div>
+    <div class="drawer-acts">
+      <button class="btn-clear" onclick="clearAll()">Clear all</button>
+      <button class="btn-done" onclick="closeDrawer()">Done</button>
+    </div>
   </div>
-
-  <div id="pins-layer"></div>
+  <div class="fsec"><div class="fsec-label">📶 Wifi <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="wifi" data-v="fast"><span class="fi">⚡</span>Fast &amp; reliable</div>
+    <div class="fpill" data-g="wifi" data-v="free"><span class="fi">✓</span>Free wifi</div>
+    <div class="fpill" data-g="wifi" data-v="eduroam"><span class="fi">🎓</span>Eduroam</div>
+    <div class="fpill" data-g="wifi" data-v="none"><span class="fi">✕</span>No wifi</div>
+  </div></div>
+  <div class="fsec"><div class="fsec-label">🔇 Noise <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="noise" data-v="silent"><span class="fi">🤫</span>Silent</div>
+    <div class="fpill" data-g="noise" data-v="quiet"><span class="fi">🔇</span>Quiet</div>
+    <div class="fpill" data-g="noise" data-v="moderate"><span class="fi">💬</span>Moderate buzz</div>
+    <div class="fpill" data-g="noise" data-v="active"><span class="fi">🔊</span>Active / lively</div>
+  </div></div>
+  <div class="fsec"><div class="fsec-label">🔌 Power <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="power" data-v="plenty"><span class="fi">🔌</span>Plenty of outlets</div>
+    <div class="fpill" data-g="power" data-v="some"><span class="fi">⚡</span>Some outlets</div>
+    <div class="fpill" data-g="power" data-v="none"><span class="fi">✕</span>No outlets</div>
+  </div></div>
+  <div class="fsec"><div class="fsec-label">👥 Busyness <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="occ" data-v="low"><span class="fi">🟢</span>Usually quiet</div>
+    <div class="fpill" data-g="occ" data-v="medium"><span class="fi">🟡</span>Moderate</div>
+    <div class="fpill" data-g="occ" data-v="high"><span class="fi">🔴</span>Often busy</div>
+  </div></div>
+  <div class="fsec"><div class="fsec-label">🚪 Access <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="access" data-v="free"><span class="fi">🆓</span>Free to enter</div>
+    <div class="fpill" data-g="access" data-v="day-pass"><span class="fi">🎫</span>Day pass</div>
+    <div class="fpill" data-g="access" data-v="membership"><span class="fi">🔑</span>Membership</div>
+    <div class="fpill" data-g="access" data-v="24h"><span class="fi">🌙</span>24 / 7</div>
+    <div class="fpill" data-g="access" data-v="public"><span class="fi">🌐</span>Open to public</div>
+  </div></div>
+  <div class="fsec"><div class="fsec-label">✦ Vibe <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="vibe" data-v="deep-focus"><span class="fi">🎯</span>Deep focus</div>
+    <div class="fpill" data-g="vibe" data-v="social"><span class="fi">🤝</span>Social</div>
+    <div class="fpill" data-g="vibe" data-v="energetic"><span class="fi">⚡</span>Energetic</div>
+    <div class="fpill" data-g="vibe" data-v="contemplative"><span class="fi">🌿</span>Contemplative</div>
+    <div class="fpill" data-g="vibe" data-v="creative"><span class="fi">🎨</span>Creative</div>
+    <div class="fpill" data-g="vibe" data-v="cozy"><span class="fi">☕</span>Cozy</div>
+    <div class="fpill" data-g="vibe" data-v="historic"><span class="fi">🏛️</span>Historic</div>
+    <div class="fpill" data-g="vibe" data-v="views"><span class="fi">🌊</span>Views</div>
+    <div class="fpill" data-g="vibe" data-v="outdoor"><span class="fi">☀️</span>Outdoor-friendly</div>
+  </div></div>
+  <div class="fsec"><div class="fsec-label">✓ Amenities <em>pick any</em></div><div class="fpills">
+    <div class="fpill" data-g="amenity" data-v="printing"><span class="fi">🖨️</span>Printing</div>
+    <div class="fpill" data-g="amenity" data-v="meeting"><span class="fi">🚪</span>Meeting rooms</div>
+    <div class="fpill" data-g="amenity" data-v="kitchen"><span class="fi">🍳</span>Kitchen</div>
+    <div class="fpill" data-g="amenity" data-v="food"><span class="fi">☕</span>Food on-site</div>
+    <div class="fpill" data-g="amenity" data-v="outdoor"><span class="fi">🌿</span>Outdoor area</div>
+    <div class="fpill" data-g="amenity" data-v="phone"><span class="fi">📞</span>Phone booths</div>
+    <div class="fpill" data-g="amenity" data-v="accessible"><span class="fi">♿</span>Accessible</div>
+    <div class="fpill" data-g="amenity" data-v="tools"><span class="fi">🔧</span>Fab tools</div>
+    <div class="fpill" data-g="amenity" data-v="parking"><span class="fi">🚗</span>Parking</div>
+  </div></div>
 </div>
 
 <!-- HEADER -->
+
 <div id="header">
   <div class="header-row">
-    <div class="wordmark">d<span>w</span>ell</div>
-    <div class="search-wrap">
-      <span class="search-icon">⌕</span>
-      <input class="search-in" type="text" placeholder="Search spaces…" id="search-in">
+    <div class="logo-lockup">
+      <div class="logo-mark">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 54 L50 18 L88 54" stroke="#1e1a14" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <line x1="12" y1="54" x2="12" y2="84" stroke="#1e1a14" stroke-width="9" stroke-linecap="round"/>
+          <line x1="88" y1="54" x2="88" y2="84" stroke="#1e1a14" stroke-width="9" stroke-linecap="round"/>
+          <path d="M26 57 L50 35 L74 57" stroke="#1e1a14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <ellipse cx="50" cy="68" rx="7" ry="10" fill="#1e1a14"/>
+          <ellipse cx="50" cy="58" rx="4" ry="4" fill="#1e1a14"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-dwell">Dwell</span>
+        <span class="logo-perch">Perch</span>
+      </div>
     </div>
-    <button class="ar-btn" onclick="showToast('AR mode coming soon')">Live AR</button>
-  </div>
-  <div id="filters">
-    <div class="chip on" data-f="all"><span class="chip-dot"></span>All spaces</div>
-    <div class="chip" data-f="library" style="--dot:#4a5f7b"><span class="chip-dot" style="background:#4a5f7b"></span>Library</div>
-    <div class="chip" data-f="cafe" style="--dot:#8a5a38"><span class="chip-dot" style="background:#8a5a38"></span>Café</div>
-    <div class="chip" data-f="cowork" style="--dot:#3e6c4e"><span class="chip-dot" style="background:#3e6c4e"></span>Cowork</div>
-    <div class="chip" data-f="campus" style="--dot:#6c4d7b"><span class="chip-dot" style="background:#6c4d7b"></span>Campus</div>
-    <div class="chip" data-f="quiet" style="--dot:#5a7a6a"><span class="chip-dot" style="background:#5a7a6a"></span>Quiet Space</div>
-    <div class="chip" data-f="studio" style="--dot:#7a5a3a"><span class="chip-dot" style="background:#7a5a3a"></span>Studio</div>
-  </div>
+
+```
+<div class="search-wrap">
+  <span class="search-icon">⌕</span>
+  <input class="search-in" type="text" id="search-in" placeholder="Search spaces, neighborhoods…">
 </div>
 
-<!-- LEGEND -->
-<div id="legend">
-  <div class="legend-title">Space types</div>
-  <div class="legend-row"><div class="legend-dot" style="background:#4a5f7b"></div><div class="legend-label">Library / Archive</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#8a5a38"></div><div class="legend-label">Café / Study Café</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#3e6c4e"></div><div class="legend-label">Coworking Space</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#6c4d7b"></div><div class="legend-label">Campus / University</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#5a7a6a"></div><div class="legend-label">Quiet / Reading Room</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#7a5a3a"></div><div class="legend-label">Studio / Maker Space</div></div>
-  <div style="border-top:1px solid var(--border);margin:8px 0 6px"></div>
-  <div class="legend-title">Occupancy</div>
-  <div class="legend-row"><div class="legend-dot" style="background:#4a8c5a"></div><div class="legend-label">Usually quiet</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#b88c3a"></div><div class="legend-label">Moderate</div></div>
-  <div class="legend-row"><div class="legend-dot" style="background:#8b3a2a"></div><div class="legend-label">Often busy</div></div>
+<div class="city-badge"><span class="dot"></span>San Diego</div>
+
+<button class="filter-toggle" id="ftoggle" onclick="toggleDrawer()">
+  ⊟ <span class="filter-badge" id="fbadge">0</span>
+</button>
+```
+
+  </div>
+
+  <div id="active-bar"></div>
+
+  <div id="type-strip">
+    <div class="chip on" data-f="all"><span class="chip-dot"></span>All</div>
+    <div class="chip" data-f="library"><span class="chip-dot" style="background:#4a5f7b"></span>Library</div>
+    <div class="chip" data-f="cafe"><span class="chip-dot" style="background:#8a5a38"></span>Café</div>
+    <div class="chip" data-f="cowork"><span class="chip-dot" style="background:#3e6c4e"></span>Cowork</div>
+    <div class="chip" data-f="campus"><span class="chip-dot" style="background:#6c4d7b"></span>Campus</div>
+    <div class="chip" data-f="quiet"><span class="chip-dot" style="background:#5a7a6a"></span>Quiet</div>
+    <div class="chip" data-f="studio"><span class="chip-dot" style="background:#7a5a3a"></span>Studio</div>
+  </div>
 </div>
 
 <!-- SHEET -->
+
 <div id="sheet" class="peek">
   <div class="sheet-handle-wrap" id="sheet-handle">
     <div class="sheet-handle"></div>
-    <div class="sheet-count" id="sheet-count">24 work & study spaces</div>
+    <div class="sheet-count-row">
+      <span class="sheet-count" id="sheet-count">— spaces in San Diego</span>
+      <button class="sort-btn on" data-sort="default" onclick="setSort('default')">All areas</button>
+      <button class="sort-btn" data-sort="quiet" onclick="setSort('quiet')">Quietest</button>
+      <button class="sort-btn" data-sort="open" onclick="setSort('open')">Open late</button>
+    </div>
   </div>
-
-  <!-- space detail panel -->
   <div class="sheet-detail" id="sheet-detail"></div>
-
-  <!-- list -->
   <div class="sheet-list" id="sheet-list"></div>
+  <div id="empty-state">
+    <div class="empty-icon">◎</div>
+    <div class="empty-msg">No spaces match your filters</div>
+    <div class="empty-sub">Try adjusting your filters or clearing a few</div>
+  </div>
 </div>
 
 <!-- TRAY -->
+
 <div id="tray">
-  <button class="tray-btn" onclick="cycleSheet()">
-    <span class="ic">≡</span><span>Browse</span>
-  </button>
-  <button class="tray-btn" onclick="showToast('Centered on your location')">
-    <span class="ic">◎</span><span>Near me</span>
-  </button>
-  <button class="legend-btn" onclick="toggleLegend()">
-    <span class="ic">⊞</span><span>Legend</span>
-  </button>
-  <button class="tray-btn" onclick="showToast('Saved to your spaces')">
-    <span class="ic">♡</span><span>Saved</span>
-  </button>
+  <button class="tray-btn" onclick="cycleSheet()"><span class="ic">≡</span><span>Browse</span></button>
+  <button class="tray-btn" onclick="showToast('Centered on Downtown SD')"><span class="ic">◎</span><span>Near me</span></button>
+  <button class="tray-btn" onclick="toggleDrawer()"><span class="ic">⊟</span><span>Filters</span></button>
+  <button class="tray-btn" onclick="showToast('Saved spaces')"><span class="ic">♡</span><span>Saved</span></button>
 </div>
 
 <div id="toast"></div>
 
 <script>
-const TYPES = {
-  library: { label:'Library',     icon:'📚', bg:'#4a5f7b' },
-  cafe:    { label:'Café',        icon:'☕', bg:'#8a5a38' },
-  cowork:  { label:'Coworking',   icon:'💻', bg:'#3e6c4e' },
-  campus:  { label:'Campus',      icon:'🏛️', bg:'#6c4d7b' },
-  quiet:   { label:'Quiet Space', icon:'🔇', bg:'#5a7a6a' },
-  studio:  { label:'Studio',      icon:'⚙️', bg:'#7a5a3a' },
+const TYPES={
+  library:{label:'Library',icon:'📚',bg:'#4a5f7b'},
+  cafe:   {label:'Café',   icon:'☕',bg:'#8a5a38'},
+  cowork: {label:'Cowork', icon:'💻',bg:'#3e6c4e'},
+  campus: {label:'Campus', icon:'🏛️',bg:'#6c4d7b'},
+  quiet:  {label:'Quiet',  icon:'🔇',bg:'#5a7a6a'},
+  studio: {label:'Studio', icon:'⚙️',bg:'#7a5a3a'},
+};
+const NL={silent:'Silent',quiet:'Quiet',moderate:'Moderate buzz',active:'Active'};
+const WL={fast:'Fast wifi',free:'Free wifi',none:'No wifi',eduroam:'Eduroam'};
+const PL={plenty:'Plenty of outlets',some:'Some outlets',none:'No outlets'};
+const OL={low:'Usually quiet',medium:'Moderate',high:'Often busy'};
+const PillL={
+  fast:'Fast wifi',free:'Free wifi',eduroam:'Eduroam',none:'No wifi',
+  silent:'Silent',quiet:'Quiet',moderate:'Moderate',active:'Active',
+  plenty:'Plenty outlets',some:'Some outlets',
+  low:'Usually quiet',medium:'Moderate traffic',high:'Often busy',
+  'day-pass':'Day pass',membership:'Membership','24h':'24/7',public:'Public',
+  'deep-focus':'Deep focus',social:'Social',energetic:'Energetic',contemplative:'Contemplative',creative:'Creative',cozy:'Cozy',historic:'Historic',views:'Views',outdoor:'Outdoor-friendly',
+  printing:'Printing',meeting:'Meeting rooms',kitchen:'Kitchen',food:'Food on-site',outdoor:'Outdoor area',phone:'Phone booths',accessible:'Accessible',tools:'Fab tools',parking:'Parking',
 };
 
-const SPACES = [
-  {
-    id:1, name:'San Francisco Main Library',
-    type:'library', x:52, y:60,
-    address:'100 Larkin St, Civic Center',
-    desc:'Grand Beaux-Arts civic library with six floors of stacks, panoramic views, a dedicated SF history room, and the James C. Hormel LGBTQIA+ Center. The 5th floor reading rooms are especially peaceful on weekday mornings.',
-    hours:'Mon–Thu 9am–8pm · Fri 12–6pm · Sat 10–6pm · Sun 12–5pm',
-    wifi:'Free, 2hr sessions',
-    noise:'Varies by floor — upper floors quietest',
-    power:'Limited at study carrels',
-    capacity:'250+',
-    occupancy:62, density:'high',
-    tags:['Archives','Printing','Meeting Rooms','Accessible'],
-    occ:'medium'
-  },
-  {
-    id:2, name:'Haight-Ashbury Branch Library',
-    type:'library', x:18, y:50,
-    address:'547 Cole St, Haight-Ashbury',
-    desc:'Intimate neighborhood branch tucked into a quiet residential block. Excellent for a few focused hours — the periodical reading area faces a small courtyard garden. Often overlooked by non-locals.',
-    hours:'Tue–Sat 10am–6pm · Closed Sun/Mon',
-    wifi:'Free, no time limit',
-    noise:'Consistently quiet',
-    power:'A few outlets near reading tables',
-    capacity:'40',
-    occupancy:28, density:'low',
-    tags:['Neighborhood', 'Quiet','Garden View'],
-    occ:'low'
-  },
-  {
-    id:3, name:'Park Branch Library',
-    type:'library', x:8, y:36,
-    address:'1833 Page St, Inner Sunset',
-    desc:'A beloved community library bordering Golden Gate Park. Natural light, wooden reading tables, and a welcoming staff that knows most regulars by name. Strong local history and nature collections.',
-    hours:'Tue–Sat 10am–6pm',
-    wifi:'Free',
-    noise:'Quiet',
-    power:'Limited',
-    capacity:'35',
-    occupancy:22, density:'low',
-    tags:['Golden Gate Park Adjacent','Local History','Relaxed'],
-    occ:'low'
-  },
-  {
-    id:4, name:'Nourish Café',
-    type:'cafe', x:36, y:58,
-    address:'631 Hayes St, Hayes Valley',
-    desc:'Warm, plant-forward café that fills with freelancers and students by 9am. Good espresso, excellent pour-overs, communal bench table by the window. Staff are laptop-friendly as long as you\'re buying.',
-    hours:'Mon–Fri 7am–4pm · Sat–Sun 8am–3pm',
-    wifi:'Free, password at counter',
-    noise:'Moderate buzz — light music',
-    power:'Power strips under the long bench',
-    capacity:'28',
-    occupancy:75, density:'high',
-    tags:['Laptop Friendly','Pour Over','Natural Light','Vegan Options'],
-    occ:'high'
-  },
-  {
-    id:5, name:'Sightglass Coffee — 7th St',
-    type:'cafe', x:60, y:66,
-    address:'270 7th St, SoMa',
-    desc:'Cavernous roastery space with soaring ceilings, long communal tables, and serious coffee. One of the few SF cafés explicitly tolerant of long work sessions. The back mezzanine is quieter than the ground floor.',
-    hours:'Mon–Fri 7am–5pm · Sat–Sun 8am–5pm',
-    wifi:'Free, fast',
-    noise:'Medium — ambient roastery noise',
-    power:'Ample outlets throughout',
-    capacity:'80+',
-    occupancy:55, density:'high',
-    tags:['Roastery','Long Sessions OK','Mezzanine','Community Table'],
-    occ:'medium'
-  },
-  {
-    id:6, name:'Linea Caffe',
-    type:'cafe', x:28, y:42,
-    address:'3417 18th St, Mission / Noe Valley',
-    desc:'Small, serious espresso bar with a reputation as one of SF\'s best. The side counter has exactly four seats — ideal for solo work with minimal distraction. Not designed for hours-long sessions, but great for 90 minutes of focused output.',
-    hours:'Mon–Fri 7am–3pm · Sat 8am–3pm',
-    wifi:'No wifi — a feature, not a bug',
-    noise:'Very quiet — minimal chatter',
-    power:'No power outlets',
-    capacity:'12',
-    occupancy:40, density:'low',
-    tags:['Serious Coffee','No Wifi','Focused','Espresso Bar'],
-    occ:'low'
-  },
-  {
-    id:7, name:'Ritual Coffee — Hayes Valley',
-    type:'cafe', x:44, y:52,
-    address:'432B Octavia St, Hayes Valley',
-    desc:'Light-filled corner café in a converted Victorian storefront. Ritual\'s menu skews technical and seasonal. Regulars camp here with laptops most weekday mornings — staff are accommodating during off-peak hours.',
-    hours:'Mon–Fri 7am–5pm · Sat–Sun 8am–5pm',
-    wifi:'Free',
-    noise:'Moderate',
-    power:'Some outlets along east wall',
-    capacity:'22',
-    occupancy:60, density:'medium',
-    tags:['Specialty Coffee','Victorian Space','Neighborhood'],
-    occ:'medium'
-  },
-  {
-    id:8, name:'Boba Guys — Divisadero',
-    type:'cafe', x:14, y:44,
-    address:'3491 19th St, Divisadero',
-    desc:'Surprisingly solid study café — the back room has large tables and is calmer than the front counter suggests. Excellent boba and matcha drinks. The afternoon lull (2–4pm) is perfect for deep work.',
-    hours:'Daily 11am–9pm',
-    wifi:'Free, stable',
-    noise:'Moderate front, quieter back',
-    power:'Back wall outlets',
-    capacity:'35',
-    occupancy:45, density:'medium',
-    tags:['Back Room','Afternoon Lull','Boba','Chill'],
-    occ:'medium'
-  },
-  {
-    id:9, name:'Canopy — Hayes Valley',
-    type:'cowork', x:40, y:48,
-    address:'399 Grove St, Hayes Valley',
-    desc:'Boutique coworking space aimed at creative independents and small teams. Day passes available. Curated membership keeps the energy collaborative but low-noise. Good natural light and a pleasant shared kitchen.',
-    hours:'Mon–Fri 8am–8pm · Sat 9am–5pm',
-    wifi:'Fast, gigabit',
-    noise:'Low to medium — focused atmosphere',
-    power:'Everywhere',
-    capacity:'60',
-    occupancy:50, density:'medium',
-    tags:['Day Pass','Creative','Private Rooms','Kitchen'],
-    occ:'medium'
-  },
-  {
-    id:10, name:'The Vault SF',
-    type:'cowork', x:62, y:54,
-    address:'77 Van Ness Ave, Civic Center',
-    desc:'Converted bank building with high ceilings, original vault still intact. A dramatic environment for a productive day. Amenities include phone booths, an event space, and a café on the ground floor.',
-    hours:'Mon–Fri 7am–9pm · Sat 8am–6pm',
-    wifi:'Blazing fast',
-    noise:'Low — serious work culture',
-    power:'Everywhere, standing desks available',
-    capacity:'120',
-    occupancy:68, density:'high',
-    tags:['Hot Desks','Private Offices','Historic Building','Phone Booths'],
-    occ:'medium'
-  },
-  {
-    id:11, name:'Parisoma — Market St',
-    type:'cowork', x:54, y:56,
-    address:'169 11th St, SoMa',
-    desc:'Long-running SF coworking institution with a startup-friendly culture. Known for events and workshops that bring members together. Solid daily rates. The loft area upstairs has the best quiet-work energy.',
-    hours:'Mon–Fri 7am–8pm',
-    wifi:'Good',
-    noise:'Variable — loft quieter',
-    power:'Throughout',
-    capacity:'80',
-    occupancy:55, density:'medium',
-    tags:['Startup Friendly','Events','Loft','Community'],
-    occ:'medium'
-  },
-  {
-    id:12, name:'WorkWell — Divisadero',
-    type:'cowork', x:16, y:38,
-    address:'2201 Market St, Upper Market',
-    desc:'Neighborhood coworking space with a wellness orientation — meditation corner, standing desks, ergonomic chairs throughout. Quiet and deliberately paced. Members skew toward health, design, and strategy roles.',
-    hours:'Mon–Fri 8am–8pm',
-    wifi:'Fast',
-    noise:'Very low — wellness atmosphere',
-    power:'Standing desks included',
-    capacity:'40',
-    occupancy:35, density:'low',
-    tags:['Wellness','Quiet','Ergonomic','Standing Desks'],
-    occ:'low'
-  },
-  {
-    id:13, name:'UCSF Mission Bay Library',
-    type:'library', x:78, y:70,
-    address:'1600 Owens St, Mission Bay',
-    desc:'Stunning modern research library in UCSF\'s Mission Bay campus. Access for students and affiliates, but general public may use reading rooms with a visitor pass at the desk. Exceptional science and health collections.',
-    hours:'Mon–Fri 8am–10pm · Sat–Sun 10am–8pm',
-    wifi:'Eduroam + visitor network',
-    noise:'Research-library quiet',
-    power:'Generous — research carrels',
-    capacity:'200+',
-    occupancy:48, density:'medium',
-    tags:['Research','Science','Visitor Pass','Modern'],
-    occ:'medium'
-  },
-  {
-    id:14, name:'SF State J. Paul Leonard Library',
-    type:'campus', x:20, y:82,
-    address:'1630 Holloway Ave, Ingleside',
-    desc:'SFSU\'s main library with good open-stack access and numerous group study rooms. Off-campus visitors can get a community borrower card. The upper floors are reliably quiet; the ground floor is more social.',
-    hours:'Mon–Thu 8am–9pm · Fri 8am–5pm · Sat–Sun 11am–5pm',
-    wifi:'Eduroam + guest access',
-    noise:'Upper floors quiet',
-    power:'Study carrels throughout',
-    capacity:'300+',
-    occupancy:58, density:'high',
-    tags:['Group Rooms','Community Card','Stack Access','University'],
-    occ:'medium'
-  },
-  {
-    id:15, name:'UC Hastings Law Library',
-    type:'campus', x:50, y:62,
-    address:'200 McAllister St, Civic Center',
-    desc:'Formal law library with high reading room ceilings, serious atmosphere, and excellent legal databases. Open to the public for in-person use. An underrated gem for deep solo work — the reading room demands focus.',
-    hours:'Mon–Fri 8am–8pm · Sat 10am–5pm',
-    wifi:'Guest network available',
-    noise:'Strictly quiet — law library culture',
-    power:'Reading room outlets',
-    capacity:'100',
-    occupancy:30, density:'low',
-    tags:['Law Library','Public Access','Formal','Quiet Culture'],
-    occ:'low'
-  },
-  {
-    id:16, name:'Mechanics\' Institute Library',
-    type:'library', x:72, y:50,
-    address:'57 Post St, Financial District',
-    desc:'Founded in 1854, one of SF\'s oldest member libraries. Annual membership grants access to an extraordinary private reading room, extensive chess room, and rotating gallery. A hidden treasure in the Financial District.',
-    hours:'Mon–Thu 9am–8pm · Fri 9am–6pm · Sat 10am–5pm',
-    wifi:'Members: fast. Day pass available.',
-    noise:'Victorian hush',
-    power:'Reading room outlets',
-    capacity:'80',
-    occupancy:40, density:'low',
-    tags:['Members Only','Historic 1854','Reading Room','Chess'],
-    occ:'low'
-  },
-  {
-    id:17, name:'The Green Room — NoPa',
-    type:'quiet', x:22, y:30,
-    address:'580 Divisadero St, NoPa',
-    desc:'A neighborhood reading and study room concept operating above a bookshop. Membership or day rate gives you access to a calm, curated environment — no café noise, no music. Eight desks, natural light, a small library of design and philosophy titles.',
-    hours:'Tue–Sun 10am–7pm',
-    wifi:'Fast, no throttle',
-    noise:'Silent work culture',
-    power:'Every desk',
-    capacity:'8',
-    occupancy:25, density:'low',
-    tags:['Silent','Above Bookshop','Curated','Day Rate'],
-    occ:'low'
-  },
-  {
-    id:18, name:'Studio 1510 — Maker Space',
-    type:'studio', x:32, y:64,
-    address:'1510 Mission St, SoMa Adjacent',
-    desc:'Community maker space with fabrication tools, laser cutters, 3D printers, and electronics workbenches. Monthly and drop-in memberships. Orientation required for tool access. The hot-desk lounge area is open to all members without tools.',
-    hours:'Mon–Fri 9am–10pm · Sat–Sun 10am–8pm',
-    wifi:'Fast',
-    noise:'Active — fabrication sounds',
-    power:'Workbench power throughout',
-    capacity:'45',
-    occupancy:50, density:'medium',
-    tags:['3D Printing','Laser Cutter','Electronics','Fabrication'],
-    occ:'medium'
-  },
-  {
-    id:19, name:'Noisebridge — Mission',
-    type:'studio', x:46, y:68,
-    address:'2169 Mission St, Mission',
-    desc:'SF\'s legendary volunteer-run hackerspace. Open to anyone curious about technology, making, and learning. No-fee, donation-based culture. Electronics, sewing, VR, darkroom, and a sprawling, beautifully chaotic environment. Do-ocracy in action.',
-    hours:'Open 24/7 · Most active evenings',
-    wifi:'Fast',
-    noise:'Variable — collaborative energy',
-    power:'Everywhere',
-    capacity:'60',
-    occupancy:40, density:'medium',
-    tags:['Hackerspace','Free to Enter','24/7','Electronics','VR'],
-    occ:'medium'
-  },
-  {
-    id:20, name:'Dogpatch Studios',
-    type:'studio', x:84, y:76,
-    address:'991 Tennessee St, Dogpatch',
-    desc:'Professional studio complex hosting designers, artists, photographers, and small production teams. Private and shared studio rentals. The shared creative lounge is available to all renters. Light-filled industrial building with loading dock access.',
-    hours:'24/7 for members · Visits by appointment',
-    wifi:'Gigabit',
-    noise:'Variable by studio',
-    power:'Throughout — 3-phase available',
-    capacity:'80',
-    occupancy:45, density:'medium',
-    tags:['Photography','Design','Private Studios','24/7 Access'],
-    occ:'medium'
-  },
-  {
-    id:21, name:'The Interval at Long Now',
-    type:'quiet', x:66, y:42,
-    address:'Fort Mason Center, Marina',
-    desc:'Part bar, part library, part lecture venue — the Long Now Foundation\'s home at Fort Mason. During the day it functions as a serene working environment with extraordinary book curation, handmade clocks, and views of the Bay. One of SF\'s most intellectually distinctive spaces.',
-    hours:'Daily 11am–8pm (bar opens 2pm)',
-    wifi:'Good',
-    noise:'Exceptionally quiet before 2pm',
-    power:'Limited — a few outlets',
-    capacity:'30',
-    occupancy:20, density:'low',
-    tags:['Long Now Foundation','Bay Views','Curated Library','Unique'],
-    occ:'low'
-  },
-  {
-    id:22, name:'Potrero Branch Library',
-    type:'library', x:70, y:64,
-    address:'1616 20th St, Potrero Hill',
-    desc:'Small neighborhood library with a devoted local following and a large sunny reading area facing a garden. Often overlooked in favor of the main branch — which makes it ideal for quiet, uninterrupted work.',
-    hours:'Tue–Sat 10am–6pm',
-    wifi:'Free',
-    noise:'Very quiet',
-    power:'Some reading table outlets',
-    capacity:'35',
-    occupancy:20, density:'low',
-    tags:['Garden View','Quiet','Neighborhood','Relaxed Atmosphere'],
-    occ:'low'
-  },
-  {
-    id:23, name:'NextSpace Coworking',
-    type:'cowork', x:58, y:48,
-    address:'28 2nd St, Financial District',
-    desc:'Well-established coworking space in the heart of FiDi. Close to transit, clean and professional. Attracts a mix of freelancers, remote workers, and small startups. A few private offices available by the week.',
-    hours:'Mon–Fri 7am–8pm',
-    wifi:'Fast',
-    noise:'Focused professional',
-    power:'Throughout',
-    capacity:'70',
-    occupancy:65, density:'high',
-    tags:['FiDi Location','Professional','Transit Hub','Week Offices'],
-    occ:'medium'
-  },
-  {
-    id:24, name:'Creativity Explored Studio',
-    type:'studio', x:38, y:72,
-    address:'3245 16th St, Mission',
-    desc:'Not a coworking space — a professional art studio for artists with developmental disabilities. The adjacent gallery and shop are open to the public and worth visiting. The studio environment is intentionally open and community-centered.',
-    hours:'Mon–Fri 10am–3pm (gallery: Mon–Sat 11am–6pm)',
-    wifi:'Gallery only',
-    noise:'Active — creative energy',
-    power:'Studio only',
-    capacity:'25',
-    occupancy:70, density:'medium',
-    tags:['Art Studio','Gallery','Community','Mission District'],
-    occ:'medium'
-  }
+// x: 0–100 = left–right; y: 0–100 = top–bottom
+// Map: y0=Carlsbad, y25=La Jolla/PB border, y100=Downtown waterfront
+// Existing city spaces: y_new = y_old*0.75 + 25
+const SPACES=[
+
+  // ── NORTH COAST — CARLSBAD ──────────────────────────
+  {id:46, name:'Carlsbad City Library',             type:'library', x:38, y:3, neighborhood:'Carlsbad',
+   address:'1775 Dove Lane, Carlsbad',
+   desc:'A modern, airy public library in Carlsbad\'s newer residential quarter. Excellent natural light, generous seating, reliable wifi, and a calm atmosphere that rewards long sessions. One of the best-kept secrets on the north coast for actual focused work.',
+   hours:'Mon–Thu 9am–8pm · Fri–Sat 9am–5pm · Sun 1–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','contemplative'],amenities:['printing','accessible','parking'],occupancy:25,tags:['Carlsbad','Modern Library','Natural Light','Parking']},
+
+  {id:47, name:'Café Moto — Carlsbad Village',      type:'cafe',    x:18, y:4, neighborhood:'Carlsbad Village',
+   address:'2977 State St, Carlsbad Village',
+   desc:'A laid-back village café two blocks from the beach with a genuine work-friendly culture. Morning regulars — a mix of remote workers, freelancers, and surf-before-9am types — settle in for hours. The back corner has the best wifi signal.',
+   hours:'Daily 7am–4pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['cozy','social','outdoor'],amenities:['food','outdoor'],occupancy:45,tags:['Village Walk','Beach Adjacent','Morning Crowd','Carlsbad']},
+
+  // ── NORTH COAST — LEUCADIA ──────────────────────────
+  {id:48, name:'Leucadia Bookstore & Tea House',    type:'quiet',   x:16, y:10, neighborhood:'Leucadia',
+   address:'764 N Coast Hwy 101, Leucadia',
+   desc:'A beloved independent bookshop on the 101 with a small tea room that doubles as the best quiet work spot in Leucadia. No coffee machines, no ambient music, just books, loose-leaf tea, and the kind of focused silence only found in great independent bookshops.',
+   hours:'Mon–Sat 10am–6pm · Sun 11am–5pm',
+   wifi:'free',noise:'silent',power:'none',occ:'low',density:'low',
+   access:['free'],vibes:['deep-focus','contemplative','cozy','historic'],amenities:[],occupancy:12,tags:['Independent Bookshop','Tea House','Silent','Hwy 101','Leucadia']},
+
+  {id:49, name:'Swami\'s Café — Leucadia',          type:'cafe',    x:14, y:11, neighborhood:'Leucadia',
+   address:'1163 S Coast Hwy 101, Encinitas',
+   desc:'Named after the nearby surf break, Swami\'s is a Leucadia/Encinitas institution. Health-focused menu, strong wifi, outdoor tables under eucalyptus, and a regulars crowd that takes working here seriously. The morning sessions before 10am are golden.',
+   hours:'Daily 7am–3pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['outdoor','cozy','social'],amenities:['food','outdoor'],occupancy:55,tags:['Surf Culture','Outdoor Tables','Health Food','Eucalyptus','Hwy 101']},
+
+  {id:50, name:'La Paloma Theatre Café',            type:'quiet',   x:20, y:9, neighborhood:'Leucadia',
+   address:'471 S Coast Hwy 101, Encinitas',
+   desc:'The lobby café of La Paloma, one of California\'s oldest continually operating movie theatres. The foyer area is open during non-screening hours as a quiet work space — high ceilings, vintage movie posters, and a remarkably calm atmosphere.',
+   hours:'Mon–Sun 10am–late (café closes 6pm)',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['historic','contemplative','creative'],amenities:['food'],occupancy:15,tags:['Historic Theatre','1928','Lobby Café','Encinitas','Unique']},
+
+  // ── NORTH COAST — ENCINITAS ─────────────────────────
+  {id:51, name:'Encinitas Branch Library',           type:'library', x:35, y:14, neighborhood:'Encinitas',
+   address:'540 Cornish Dr, Encinitas',
+   desc:'A well-resourced branch in central Encinitas with a spacious reading room, consistent quiet, and an outdoor patio area. The community of north coast remote workers has made this a reliable weekday hub. Arrives uncrowded most mornings.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm · Sun 1–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','outdoor'],amenities:['printing','outdoor','accessible','parking'],occupancy:28,tags:['Encinitas','Patio','Parking','Reliable']},
+
+  {id:52, name:'Pannikin Coffee — Encinitas',        type:'cafe',    x:16, y:15, neighborhood:'Encinitas',
+   address:'510 N Coast Hwy 101, Encinitas',
+   desc:'A San Diego legend in a restored 1883 Santa Fe Railway depot. One of the most atmospheric work cafés in the county — wide plank floors, original train station architecture, and a working culture that\'s been here as long as the building. The patio faces the 101.',
+   hours:'Mon–Fri 6:30am–5pm · Sat–Sun 7am–5pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['historic','cozy','outdoor','contemplative'],amenities:['food','outdoor'],occupancy:50,tags:['1883 Train Depot','Historic','Hwy 101','San Diego Icon','Outdoor Patio']},
+
+  {id:53, name:'Encinitas Cowork',                   type:'cowork',  x:42, y:13, neighborhood:'Encinitas',
+   address:'533 2nd St, Encinitas',
+   desc:'The north coast\'s dedicated coworking space, serving the growing remote-work community between Carlsbad and Del Mar. Day passes, private offices, and a membership that skews toward entrepreneurs, designers, and consultants who\'ve traded downtown SD for the coast.',
+   hours:'Mon–Fri 8am–7pm · Sat 9am–4pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['day-pass','membership'],vibes:['deep-focus','social','creative'],amenities:['meeting','kitchen','parking'],occupancy:40,tags:['North Coast Cowork','Day Pass','Private Offices','Encinitas']},
+
+  {id:54, name:'Lofty Coffee — Encinitas',           type:'cafe',    x:26, y:15, neighborhood:'Encinitas',
+   address:'629 S Coast Hwy 101, Encinitas',
+   desc:'Arguably the best coffee on the north coast — a serious specialty roaster with a ground-floor café that fills with remote workers by 8am. The upstairs mezzanine has views over the 101 and is notably quieter than the ground floor. Bring a charged laptop.',
+   hours:'Daily 6:30am–5pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'high',density:'high',
+   access:['free'],vibes:['energetic','creative','views'],amenities:['food'],occupancy:70,tags:['Best Coffee North Coast','Mezzanine','Specialty Roaster','Hwy 101']},
+
+  // ── NORTH COAST — CARDIFF-BY-THE-SEA ────────────────
+  {id:55, name:'Cardiff Branch Library',             type:'library', x:32, y:19, neighborhood:'Cardiff-by-the-Sea',
+   address:'2081 Newcastle Ave, Cardiff',
+   desc:'A small but beautifully quiet branch library tucked into a Cardiff residential street. The reading room overlooks a garden and gets excellent morning light. Often the least-crowded branch on the entire north coast — a genuine hidden perch.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','contemplative','cozy'],amenities:['outdoor','accessible'],occupancy:15,tags:['Hidden Gem','Garden View','Quiet','Cardiff']},
+
+  {id:56, name:'Ki\'s Restaurant & Juice Bar',       type:'cafe',    x:12, y:19, neighborhood:'Cardiff-by-the-Sea',
+   address:'2591 S Coast Hwy 101, Cardiff',
+   desc:'A Cardiff institution on the bluff above the ocean. The upstairs deck is one of the most spectacular places to work on the entire California coast — direct ocean views, sea breeze, and a health-conscious menu. Morning sessions before the brunch crowd are best.',
+   hours:'Daily 7am–3pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['outdoor','views','contemplative'],amenities:['food','outdoor'],occupancy:50,tags:['Ocean Views','Deck','Cardiff','Health Food','Bluff Overlook']},
+
+  // ── NORTH COAST — SOLANA BEACH ──────────────────────
+  {id:57, name:'Solana Beach Branch Library',        type:'library', x:30, y:22, neighborhood:'Solana Beach',
+   address:'157 Stevens Ave, Solana Beach',
+   desc:'A compact neighborhood library serving Solana Beach\'s tight-knit residential community. Reliably uncrowded on weekdays and one of the north coast\'s most peaceful spots for quiet reading and focused work.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','cozy'],amenities:['accessible'],occupancy:18,tags:['Solana Beach','Uncrowded','Quiet','Neighborhood Branch']},
+
+  {id:58, name:'Lofty Coffee — Solana Beach',        type:'cafe',    x:20, y:22, neighborhood:'Solana Beach',
+   address:'437 S Cedros Ave, Solana Beach',
+   desc:'The Cedros Design District location of Lofty — a beautiful space in one of San Diego\'s best design-forward retail corridors. Gallery-like interiors, excellent wifi, power at the bar counter, and a creative crowd that works quietly. One of the region\'s best-designed café workspaces.',
+   hours:'Daily 6:30am–5pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['free'],vibes:['creative','deep-focus','contemplative'],amenities:['food'],occupancy:45,tags:['Cedros Design District','Gallery Interiors','Specialty Coffee','Solana Beach']},
+
+  // ── NORTH COAST — DEL MAR ───────────────────────────
+  {id:59, name:'Del Mar Branch Library',             type:'library', x:28, y:26, neighborhood:'Del Mar',
+   address:'1309 Camino Del Mar, Del Mar',
+   desc:'A small, handsome library right on Camino Del Mar — the central artery of Del Mar village. Walking distance from the beach and the racetrack. The reading room is quiet and light-filled; the surrounding village makes for excellent post-session strolls.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','outdoor','views'],amenities:['accessible'],occupancy:22,tags:['Del Mar Village','Beach Walk','Racetrack Adjacent','Quiet']},
+
+  {id:60, name:'Americana Restaurant Del Mar',       type:'cafe',    x:15, y:26, neighborhood:'Del Mar',
+   address:'1454 Camino Del Mar, Del Mar',
+   desc:'A Del Mar village café and restaurant with a breezy patio that functions well as a morning work spot. Reliable wifi, good coffee, and a village scene that\'s more relaxed than its upscale surroundings suggest. Best on weekday mornings before 10am.',
+   hours:'Daily 7am–9pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['outdoor','social','views'],amenities:['food','outdoor'],occupancy:40,tags:['Del Mar Village','Patio','Morning Sessions','Village Walk']},
+
+  {id:61, name:'Torrey Pines Gliderport',            type:'quiet',   x:58, y:25, neighborhood:'Torrey Pines / Del Mar',
+   address:'2800 Torrey Pines Scenic Dr, La Jolla',
+   desc:'Not a café or library — a clifftop gliderport with a small snack bar and the most dramatic outdoor work setting in San Diego County. The mesa overlooking the Pacific and the gliders launching into thermals makes this a genuinely singular perch. BYOB, bring battery power.',
+   hours:'Daily sunrise–sunset',
+   wifi:'none',noise:'quiet',power:'none',occ:'low',density:'low',
+   access:['free'],vibes:['outdoor','views','contemplative'],amenities:['outdoor'],occupancy:15,tags:['Clifftop','Ocean Views','Gliderport','No Wifi','Unique Perch','Torrey Pines']},
+
+  // ── DOWNTOWN / GASLAMP ──────────────────────────────
+  {id:1, name:'San Diego Central Library',         type:'library', x:62, y:86, neighborhood:'Downtown',
+   address:'330 Park Blvd, East Village',
+   desc:'The flagship of the San Diego Public Library system — a stunning nine-story building with a dome of latticed steel. The rooftop deck has views of downtown and the bay. The 7th-floor reading room is exceptionally peaceful for deep work.',
+   hours:'Mon–Thu 9:30am–7pm · Fri–Sat 9:30am–5pm · Sun 1–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'medium',density:'high',
+   access:['free','public'],vibes:['deep-focus','contemplative','views'],amenities:['printing','meeting','accessible'],occupancy:52,tags:['Rooftop Deck','Bay Views','9 Floors','Architecture']},
+
+  {id:2, name:'James Coffee Co.',                  type:'cafe',    x:55, y:85, neighborhood:'Downtown / Little Italy',
+   address:'1551 India St, Little Italy',
+   desc:'The anchor café of Little Italy\'s working scene. Exceptional single-origin espresso, long communal tables, and a crowd of designers and remote workers. The back room is quieter for focused sessions.',
+   hours:'Mon–Fri 7am–5pm · Sat–Sun 8am–4pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'high',density:'high',
+   access:['free'],vibes:['social','energetic','cozy'],amenities:['food'],occupancy:72,tags:['Little Italy','Specialty Coffee','Communal Tables']},
+
+  {id:3, name:'Better Buzz Coffee — India St',     type:'cafe',    x:52, y:83, neighborhood:'Little Italy',
+   address:'1496 India St, Little Italy',
+   desc:'A San Diego chain done right — consistent specialty coffee, generous power access, and a young creative clientele. The India St location has outdoor seating under shade sails. Good for a solid 2–3 hour session.',
+   hours:'Daily 6am–7pm',
+   wifi:'fast',noise:'moderate',power:'plenty',occ:'medium',density:'medium',
+   access:['free'],vibes:['social','outdoor'],amenities:['food','outdoor'],occupancy:60,tags:['Outdoor Seating','Power Everywhere','Local Chain']},
+
+  {id:4, name:'Cafe 21 — Gaslamp',                type:'cafe',    x:66, y:86, neighborhood:'Gaslamp Quarter',
+   address:'802 5th Ave, Gaslamp Quarter',
+   desc:'A European-style bistro café that works surprisingly well for mornings. The back corner tables are quiet, the wifi is reliable, and the avocado toast is excellent. Opens early enough for the early-riser crowd.',
+   hours:'Daily 7am–10pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['social','historic','cozy'],amenities:['food'],occupancy:55,tags:['Gaslamp','European-style','Morning Crowd']},
+
+  // ── HILLCREST / BANKERS HILL ────────────────────────
+  {id:5, name:'Hillcrest Branch Library',          type:'library', x:47, y:67, neighborhood:'Hillcrest',
+   address:'215 W Washington St, Hillcrest',
+   desc:'A beloved neighborhood branch with a vibrant community character and reliable quiet reading areas. The afternoon hours are particularly low-traffic. Strong LGBTQ+ community focus with excellent programming and an inclusive atmosphere.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm · Sun 1–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','contemplative','cozy'],amenities:['accessible'],occupancy:30,tags:['Neighborhood Branch','LGBTQ+ Friendly','Afternoon Retreat']},
+
+  {id:6, name:'Influx Café',                       type:'cafe',    x:50, y:64, neighborhood:'Hillcrest',
+   address:'1948 El Cajon Blvd, Hillcrest',
+   desc:'A no-fuss café beloved by the local creative and healthcare community. Strong wifi, lots of power, and a staff that genuinely supports long-stay workers. The back patio is a quiet outdoor option. One of the best actual work cafés in SD.',
+   hours:'Mon–Fri 7am–8pm · Sat–Sun 8am–8pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['free'],vibes:['deep-focus','cozy'],amenities:['food','outdoor','parking'],occupancy:45,tags:['Laptop Friendly','Patio','Long Sessions','Local Favorite']},
+
+  {id:7, name:'Fig Tree Café — Hillcrest',         type:'cafe',    x:46, y:68, neighborhood:'Hillcrest',
+   address:'3009 University Ave, Hillcrest',
+   desc:'A bright, vegetarian-friendly brunch café that transitions into a productive work environment after the 11am rush. Lots of natural light, reliable wifi, and a neighborhood regulars crowd that tends toward the thoughtful and focused.',
+   hours:'Daily 8am–4pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['social','cozy'],amenities:['food'],occupancy:50,tags:['Vegetarian','Brunch','Natural Light','Hillcrest']},
+
+  {id:8, name:'Establishment Cowork — Hillcrest',  type:'cowork',  x:48, y:66, neighborhood:'Hillcrest',
+   address:'1010 University Ave, Hillcrest',
+   desc:'A well-regarded independent coworking space serving Hillcrest\'s growing remote-work community. Day passes available, private offices by the week. Clean design, excellent wifi, and a membership that skews healthcare, creative, and nonprofit.',
+   hours:'Mon–Fri 8am–7pm · Sat 9am–4pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['day-pass','membership'],vibes:['deep-focus','social'],amenities:['meeting','phone','kitchen'],occupancy:48,tags:['Day Pass','Private Offices','Healthcare District Adjacent']},
+
+  // ── NORTH PARK ──────────────────────────────────────
+  {id:9, name:'North Park Branch Library',          type:'library', x:72, y:68, neighborhood:'North Park',
+   address:'3795 31st St, North Park',
+   desc:'A compact, well-loved neighborhood library that serves North Park\'s dense creative community. The late Thursday hours are underutilized and particularly conducive to focused work after the daytime crowd clears.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','cozy'],amenities:['accessible'],occupancy:28,tags:['North Park','Neighborhood','Thursday Evenings']},
+
+  {id:10, name:'Dark Horse Coffee — North Park',    type:'cafe',    x:70, y:70, neighborhood:'North Park',
+   address:'3794 30th St, North Park',
+   desc:'The definitive North Park café. A large, well-lit space with exceptional coffee and a faithful regulars crowd of designers, writers, and remote workers. The side room is notably quieter than the main bar.',
+   hours:'Daily 6am–6pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'high',density:'high',
+   access:['free'],vibes:['social','creative','cozy'],amenities:['food'],occupancy:70,tags:['North Park Institution','Side Room','Specialty Coffee']},
+
+  {id:11, name:'Myrtle & Cypress',                 type:'cafe',    x:74, y:72, neighborhood:'North Park',
+   address:'3076 Polk Ave, North Park',
+   desc:'A small, thoughtful neighborhood café with genuine focus on the workspace experience. Limited seating means a calmer atmosphere, and the regulars treat it like a neighborhood living room. Best on weekday mornings.',
+   hours:'Mon–Fri 7am–3pm · Sat–Sun 8am–3pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['deep-focus','cozy','contemplative'],amenities:['food'],occupancy:35,tags:['Small & Calm','Weekday Mornings','Neighborhood Living Room']},
+
+  {id:12, name:'Pigment — North Park',             type:'quiet',   x:68, y:68, neighborhood:'North Park',
+   address:'3801 30th St, North Park',
+   desc:'A lifestyle and art supply shop with a small café corner. Not designed for work, but has become an informal creative hub with a garden patio. Excellent for a creative afternoon session — bring your own headphones and a charged laptop.',
+   hours:'Mon–Sat 10am–7pm · Sun 11am–6pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['creative','cozy','outdoor'],amenities:['outdoor','food'],occupancy:25,tags:['Art Supply','Garden Patio','Creative Hub','Informal']},
+
+  {id:13, name:'North Park CoLab',                 type:'cowork',  x:73, y:66, neighborhood:'North Park',
+   address:'3550 30th St, North Park',
+   desc:'A community-focused coworking space embedded in the heart of North Park. Flexible memberships, good vibes, and a collaborative culture. Regular events bring together the neighborhood\'s freelance and startup community.',
+   hours:'Mon–Fri 8am–8pm · Sat 9am–5pm',
+   wifi:'fast',noise:'moderate',power:'plenty',occ:'medium',density:'medium',
+   access:['day-pass','membership'],vibes:['social','creative','energetic'],amenities:['meeting','kitchen'],occupancy:55,tags:['Community','Events','North Park Creative']},
+
+  // ── NORMAL HEIGHTS / UNIVERSITY HEIGHTS ─────────────
+  {id:14, name:'Lestat\'s Coffee House',            type:'cafe',    x:71, y:61, neighborhood:'Normal Heights',
+   address:'3343 Adams Ave, Normal Heights',
+   desc:'A legendary 24-hour San Diego coffee institution. Mismatched furniture, local art on the walls, and a reliably low-key crowd around the clock. The late-night hours make it uniquely valuable for night-owl workers.',
+   hours:'Open 24 hours daily',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['creative','cozy','social'],amenities:['food'],occupancy:45,tags:['24 Hours','Night Owl','Local Legend','Normal Heights']},
+
+  {id:15, name:'University Heights Branch Library', type:'library', x:66, y:60, neighborhood:'University Heights',
+   address:'4193 Park Blvd, University Heights',
+   desc:'A small, sun-filled library that punches above its weight. The periodical reading area is a consistent quiet refuge. The Park Blvd location puts you at the center of one of SD\'s most walkable, coffee-dense neighborhoods.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','contemplative'],amenities:['accessible'],occupancy:22,tags:['Park Blvd','Quiet','Periodical Reading Area']},
+
+  {id:16, name:'The Study Hall SD',               type:'cowork',  x:69, y:62, neighborhood:'University Heights',
+   address:'4110 Park Blvd, University Heights',
+   desc:'A well-designed study and cowork space above a bookshop on Park Blvd. Membership and day-rate options. The space is intentionally distraction-minimized — no food service, curated music at low volume, and a community agreement to keep phone calls to designated areas.',
+   hours:'Mon–Sat 9am–8pm · Sun 10am–6pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'low',density:'low',
+   access:['day-pass','membership'],vibes:['deep-focus','contemplative','cozy'],amenities:[],occupancy:28,tags:['No Food Service','Distraction-Free','Bookshop','Park Blvd']},
+
+  // ── MISSION HILLS / OLD TOWN ─────────────────────────
+  {id:17, name:'Mission Hills Branch Library',     type:'library', x:37, y:58, neighborhood:'Mission Hills',
+   address:'925 W Washington St, Mission Hills',
+   desc:'A charming neighborhood library serving Mission Hills\' mix of families and professionals. The reading room looks out over a small garden. Often overlooked — excellent on weekday afternoons when foot traffic drops significantly.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','cozy'],amenities:['outdoor','accessible'],occupancy:24,tags:['Garden View','Weekday Afternoons','Mission Hills']},
+
+  {id:18, name:'Caffe Calabria',                   type:'cafe',    x:40, y:61, neighborhood:'Mission Hills',
+   address:'3933 30th St, North Park',
+   desc:'An Italian-influenced specialty roaster that takes coffee seriously. The back room has long wooden tables and a working-café culture. They roast on-site — the smell alone is worth the trip. Very laptop-tolerant staff.',
+   hours:'Mon–Fri 7am–6pm · Sat–Sun 8am–5pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['cozy','deep-focus','contemplative'],amenities:['food'],occupancy:50,tags:['Italian Roastery','Long Tables','On-Site Roasting']},
+
+  {id:19, name:'Living Room Coffeehouse',          type:'cafe',    x:34, y:60, neighborhood:'Mission Hills',
+   address:'1018 W Washington St, Mission Hills',
+   desc:'True to its name — a café that feels like a thoughtfully decorated living room. The neighborhood clientele stays for hours, the wifi is reliable, and the back seating area is genuinely quiet. A Mission Hills institution.',
+   hours:'Daily 7am–9pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['cozy','deep-focus','social'],amenities:['food'],occupancy:48,tags:['Living Room Vibe','Mission Hills','Long Stay OK']},
+
+  // ── LA JOLLA / UNIVERSITY CITY ──────────────────────
+  {id:20, name:'UCSD Geisel Library',              type:'campus',  x:84, y:40, neighborhood:'La Jolla / UCSD',
+   address:'9500 Gilman Dr, La Jolla',
+   desc:'One of the most architecturally iconic libraries in the world — Pereira\'s inverted pyramid hovering over a sunken plaza. Eight floors of stacks and reading rooms. Non-UCSD visitors can access reading rooms with a community borrower card.',
+   hours:'Mon–Thu 7am–11pm · Fri 7am–8pm · Sat 10am–8pm · Sun 10am–11pm',
+   wifi:'eduroam',noise:'quiet',power:'some',occ:'medium',density:'high',
+   access:['public'],vibes:['deep-focus','historic','contemplative'],amenities:['printing','accessible'],occupancy:55,tags:['Geisel Library','Iconic Architecture','UCSD','Community Card']},
+
+  {id:21, name:'UCSD Price Center Coworking Hub',  type:'campus',  x:82, y:42, neighborhood:'UCSD',
+   address:'9500 Gilman Dr, Price Center, La Jolla',
+   desc:'A designated coworking zone within UCSD\'s Price Center student union, open to the public. Long hours, fast wifi, and a productive student atmosphere. Not glamorous, but reliably functional for deep-focus work.',
+   hours:'Mon–Fri 7am–10pm · Sat–Sun 10am–8pm',
+   wifi:'eduroam',noise:'moderate',power:'plenty',occ:'high',density:'high',
+   access:['public'],vibes:['energetic','social'],amenities:['food','printing'],occupancy:75,tags:['Student Union','Extended Hours','Public Access','UCSD']},
+
+  {id:22, name:'La Jolla Branch Library',          type:'library', x:86, y:38, neighborhood:'La Jolla',
+   address:'7555 Draper Ave, La Jolla',
+   desc:'A beautiful branch in a prime La Jolla location. The reading room is light-filled and quiet. The neighborhood\'s mix of academics and professionals creates a naturally studious atmosphere. Views of the surrounding residential streets.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','contemplative'],amenities:['accessible'],occupancy:28,tags:['La Jolla','Quiet','Academics']},
+
+  {id:23, name:'Bird Rock Coffee Roasters',         type:'cafe',    x:80, y:48, neighborhood:'La Jolla',
+   address:'5627 La Jolla Blvd, La Jolla',
+   desc:'San Diego\'s most respected specialty roaster. The La Jolla location is the flagship — serious coffee, serious regulars, and a working culture baked in. The side counter is for deep work; the communal table is for collaboration.',
+   hours:'Daily 7am–5pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['deep-focus','contemplative'],amenities:['food'],occupancy:48,tags:['Best Roaster in SD','Specialty Coffee','Flagship','Side Counter']},
+
+  {id:24, name:'Estancia La Jolla — Lobby',        type:'quiet',   x:84, y:37, neighborhood:'La Jolla',
+   address:'9700 N Torrey Pines Rd, La Jolla',
+   desc:'The hacienda-style hotel lobby functions as a surprisingly productive work environment during non-peak hours. Quiet, well-staffed, with a terrace overlooking manicured gardens. Order from the lobby bar to stay as long as needed.',
+   hours:'Daily 7am–10pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['contemplative','views','outdoor'],amenities:['food','outdoor'],occupancy:20,tags:['Hotel Lobby','Gardens','Terrace','Quiet']},
+
+  // ── PACIFIC BEACH / MISSION BEACH ───────────────────
+  {id:25, name:'Pacific Beach Branch Library',     type:'library', x:22, y:42, neighborhood:'Pacific Beach',
+   address:'4275 Cass St, Pacific Beach',
+   desc:'A breezy neighborhood branch in the heart of PB. Reliably quiet inside despite the surrounding surf-and-sun energy. The reading room is the best air-conditioned study option in a neighborhood that otherwise runs hot.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','cozy'],amenities:['accessible'],occupancy:22,tags:['Pacific Beach','Surf Neighborhood','Cool Escape']},
+
+  {id:26, name:'Better Buzz Coffee — PB',           type:'cafe',    x:18, y:39, neighborhood:'Pacific Beach',
+   address:'4721 Mission Blvd, Pacific Beach',
+   desc:'The Mission Blvd flagship of Better Buzz — high energy, great coffee, and outdoor seating that makes you feel like you\'re working on vacation. Not for deep quiet work, but excellent for creative sessions with ocean proximity.',
+   hours:'Daily 6am–8pm',
+   wifi:'fast',noise:'active',power:'some',occ:'high',density:'high',
+   access:['free'],vibes:['energetic','social','outdoor'],amenities:['food','outdoor'],occupancy:80,tags:['Mission Blvd','Outdoor Seating','Ocean Adjacent','High Energy']},
+
+  {id:27, name:'Café 976',                         type:'cafe',    x:25, y:38, neighborhood:'Pacific Beach',
+   address:'976 Turquoise St, Pacific Beach',
+   desc:'A quieter PB alternative to the Mission Blvd noise. Tucked into a residential block, Café 976 has a small but loyal regulars crowd and a genuinely good work atmosphere. Known for strong drip coffee and a relaxed pace.',
+   hours:'Mon–Fri 7am–4pm · Sat–Sun 8am–4pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['deep-focus','cozy'],amenities:['food'],occupancy:30,tags:['Residential Block','Quiet PB Option','Drip Coffee']},
+
+  // ── MISSION VALLEY / CLAIREMONT ─────────────────────
+  {id:28, name:'WeWork — Mission Valley',           type:'cowork',  x:56, y:52, neighborhood:'Mission Valley',
+   address:'2173 Salk Ave, Mission Valley',
+   desc:'A professionally managed coworking space in Mission Valley with consistent day-pass availability and excellent infrastructure. Not the most characterful space, but reliable, well-run, and convenient for those coming from the freeway.',
+   hours:'Mon–Fri 7am–9pm · Sat 8am–6pm',
+   wifi:'fast',noise:'moderate',power:'plenty',occ:'medium',density:'high',
+   access:['day-pass','membership'],vibes:['energetic','deep-focus'],amenities:['meeting','phone','kitchen','lockers'],occupancy:60,tags:['Day Pass','Professional','Mission Valley','Freeway Access']},
+
+  {id:29, name:'Clairemont Branch Library',         type:'library', x:48, y:42, neighborhood:'Clairemont',
+   address:'2920 Burgener Blvd, Clairemont',
+   desc:'A solid neighborhood branch serving Clairemont\'s large residential community. Consistent quiet, parking available, and one of the less-crowded branches in the system. Ideal if you\'re commuting from the northern neighborhoods.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus'],amenities:['parking','accessible'],occupancy:20,tags:['Parking Available','North SD','Uncrowded']},
+
+  // ── OCEAN BEACH / POINT LOMA ─────────────────────────
+  {id:30, name:'Ocean Beach Branch Library',        type:'library', x:15, y:70, neighborhood:'Ocean Beach',
+   address:'4801 Santa Monica Ave, Ocean Beach',
+   desc:'OB\'s beloved neighborhood branch — small, sunlit, and surprisingly effective for deep work given the bohemian neighborhood energy surrounding it. The afternoon quiet hours are the most productive.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus','cozy','outdoor'],amenities:['accessible'],occupancy:22,tags:['Ocean Beach','Bohemian Neighborhood','Afternoon Quiet']},
+
+  {id:31, name:'Newsbreak Coffee & Records',         type:'cafe',    x:13, y:68, neighborhood:'Ocean Beach',
+   address:'4892 Newport Ave, Ocean Beach',
+   desc:'A record shop and café hybrid that\'s become the working-creative heart of Ocean Beach. Vinyl on the walls, great pour-overs, and a crowd of artists and freelancers who spend long hours here. The back room has the most consistent quiet.',
+   hours:'Daily 7am–6pm',
+   wifi:'fast',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free'],vibes:['creative','cozy','social'],amenities:['food'],occupancy:50,tags:['Record Shop Café','Creative Scene','Back Room','Ocean Beach']},
+
+  {id:32, name:'The Mill Coffee & Print',            type:'studio',  x:17, y:72, neighborhood:'Ocean Beach',
+   address:'4834 Voltaire St, Ocean Beach',
+   desc:'A letterpress studio and café combination. The printmaking equipment is available to members; the café area is open to all. A unique space that attracts designers and makers. Has a workshop schedule for letterpress classes.',
+   hours:'Mon–Sat 8am–5pm',
+   wifi:'fast',noise:'active',power:'some',occ:'low',density:'low',
+   access:['free','membership'],vibes:['creative','outdoor'],amenities:['tools','food'],occupancy:28,tags:['Letterpress','Print Studio','Maker Space','Ocean Beach']},
+
+  {id:33, name:'Point Loma Branch Library',          type:'library', x:10, y:74, neighborhood:'Point Loma',
+   address:'3701 Voltaire St, Point Loma',
+   desc:'A spacious and well-used neighborhood library with reliable quiet rooms and good parking. The Point Loma community skews professional and academic — the library atmosphere reflects that. One of the better neighborhood branches for actual deep work.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'medium',density:'medium',
+   access:['free','public'],vibes:['deep-focus','contemplative'],amenities:['parking','accessible'],occupancy:35,tags:['Point Loma','Professional Neighborhood','Parking']},
+
+  // ── COLLEGE AREA / SDSU ─────────────────────────────
+  {id:34, name:'SDSU Love Library',                 type:'campus',  x:86, y:66, neighborhood:'College Area / SDSU',
+   address:'5500 Campanile Dr, San Diego State',
+   desc:'SDSU\'s main research library. Open to the public with a community borrower card. Multiple floors of reading rooms, study carrels, and collaborative zones. The upper floors are consistently quiet even during peak semester.',
+   hours:'Mon–Thu 7:30am–11pm · Fri 7:30am–6pm · Sat 9am–6pm · Sun 11am–11pm',
+   wifi:'eduroam',noise:'quiet',power:'some',occ:'medium',density:'high',
+   access:['public'],vibes:['deep-focus','social'],amenities:['printing','accessible'],occupancy:62,tags:['SDSU','Community Borrower Card','Upper Floors Quiet']},
+
+  {id:35, name:'The Study — SDSU Adjacent',          type:'cowork',  x:84, y:67, neighborhood:'College Area',
+   address:'6110 Friars Rd, Mission Valley East',
+   desc:'A coworking space positioned to serve the SDSU community and surrounding professionals. Long opening hours accommodating student schedules, day passes available, and a consistent study culture. Popular with grad students who want private office infrastructure.',
+   hours:'Daily 7am–10pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['day-pass','membership'],vibes:['deep-focus','energetic'],amenities:['meeting','printing','kitchen'],occupancy:50,tags:['SDSU Adjacent','Extended Hours','Grad Student Friendly']},
+
+  {id:36, name:'Mostra Coffee — College Area',       type:'cafe',    x:80, y:64, neighborhood:'College Area',
+   address:'6055 El Cajon Blvd, College Area',
+   desc:'An award-winning micro-roaster with a flagship that doubles as SD\'s best specialty coffee study café. Exceptional coffee and a remarkably functional work environment. The second seating area has strong wifi and ample power.',
+   hours:'Mon–Fri 7am–6pm · Sat–Sun 8am–5pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['free'],vibes:['deep-focus','creative'],amenities:['food'],occupancy:45,tags:['Award-Winning Roaster','Specialty Coffee','Study Friendly','El Cajon Blvd']},
+
+  // ── BALBOA PARK AREA ────────────────────────────────
+  {id:37, name:'Balboa Park Activity Center',        type:'quiet',   x:60, y:60, neighborhood:'Balboa Park',
+   address:'2145 Park Blvd, Balboa Park',
+   desc:'An often-overlooked facility within Balboa Park with reading rooms and quiet study areas. The surrounding park grounds make for excellent movement breaks. Best on weekday mornings before tour groups arrive.',
+   hours:'Mon–Fri 8am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['contemplative','outdoor','views'],amenities:['outdoor','parking'],occupancy:18,tags:['Balboa Park','Weekday Mornings','Movement Breaks','Gardens']},
+
+  {id:38, name:'Panama 66 — Balboa Park',            type:'cafe',    x:58, y:62, neighborhood:'Balboa Park',
+   address:'1549 El Prado, Balboa Park',
+   desc:'A café-bar in the sculpture garden of the San Diego Museum of Art. Working here in the morning — surrounded by outdoor sculpture, under mature trees — is a genuinely singular San Diego experience. Best with a charged laptop and no calls.',
+   hours:'Daily 11am–8pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['contemplative','creative','outdoor','views','historic'],amenities:['food','outdoor'],occupancy:22,tags:['Sculpture Garden','Outdoor Work','Museum Setting','San Diego Unique']},
+
+  // ── KEARNY MESA / CONVOY ────────────────────────────
+  {id:39, name:'Kearny Mesa Branch Library',         type:'library', x:54, y:43, neighborhood:'Kearny Mesa',
+   address:'9455 Viewridge Ave, Kearny Mesa',
+   desc:'A utilitarian branch library that consistently outperforms on actual work productivity. Ample seating, consistent quiet, parking, and a regular crowd of professionals from the surrounding tech and defense industry firms.',
+   hours:'Mon–Thu 9:30am–8pm · Fri–Sat 9:30am–5pm',
+   wifi:'free',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['deep-focus'],amenities:['parking','accessible'],occupancy:20,tags:['Tech Corridor','Parking','Reliable Quiet','Kearny Mesa']},
+
+  {id:40, name:'Tiger! Tiger! Tavern',               type:'cafe',    x:58, y:48, neighborhood:'North Park / Kearny Mesa',
+   address:'3025 El Cajon Blvd, North Park',
+   desc:'A craft beer bar that morphs into a surprisingly effective café during morning hours. The garden patio is one of the best outdoor work environments in North Park — shaded, quiet until noon, and excellent drip coffee.',
+   hours:'Daily 11am–midnight (patio from 8am weekdays)',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['creative','outdoor','social'],amenities:['food','outdoor'],occupancy:20,tags:['Garden Patio','Morning Work','Beer Garden','El Cajon Blvd']},
+
+  // ── EAST VILLAGE / BARRIO LOGAN ─────────────────────
+  {id:41, name:'East Village Branch Library',        type:'library', x:78, y:80, neighborhood:'East Village',
+   address:'330 Park Blvd, East Village',
+   desc:'Co-located with the Central Library, the East Village branch serves as the neighborhood\'s primary community library. Excellent hours, consistent service, and a diverse community of users making it one of the more energetically interesting libraries in the system.',
+   hours:'Mon–Thu 9:30am–7pm · Fri–Sat 9:30am–5pm · Sun 1–5pm',
+   wifi:'free',noise:'moderate',power:'some',occ:'medium',density:'medium',
+   access:['free','public'],vibes:['social','deep-focus'],amenities:['printing','accessible'],occupancy:48,tags:['East Village','Downtown Adjacent','Community Library']},
+
+  {id:42, name:'Consortium Coffee',                  type:'cafe',    x:76, y:83, neighborhood:'East Village',
+   address:'2879 University Ave, East Village',
+   desc:'A Scandinavian-influenced specialty café that has become the anchor of East Village\'s working-coffee scene. Serious about both coffee and workspace — long tables, good outlets, and a culture of quiet productivity.',
+   hours:'Mon–Fri 7am–5pm · Sat–Sun 8am–4pm',
+   wifi:'fast',noise:'quiet',power:'plenty',occ:'medium',density:'medium',
+   access:['free'],vibes:['deep-focus','contemplative','social'],amenities:['food'],occupancy:55,tags:['Scandinavian Coffee','East Village','Quiet Culture','Long Tables']},
+
+  {id:43, name:'Bread & Salt — Barrio Logan',        type:'studio',  x:80, y:86, neighborhood:'Barrio Logan',
+   address:'1955 Julian Ave, Barrio Logan',
+   desc:'An art exhibition space and artist studio complex in Barrio Logan\'s vibrant arts district. Open studio hours allow visiting artists and creative workers to use shared tables and tools. The gallery space doubles as a reading room during quiet hours.',
+   hours:'Tue–Sat 11am–5pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free','public'],vibes:['creative','contemplative','historic'],amenities:['outdoor'],occupancy:18,tags:['Art Gallery','Artist Studios','Barrio Logan','Gallery Space']},
+
+  // ── BANKER\'S HILL / UPTOWN ──────────────────────────
+  {id:44, name:'Commonplace Books',                  type:'quiet',   x:50, y:73, neighborhood:'Bankers Hill',
+   address:'3204 5th Ave, Bankers Hill',
+   desc:'A curated independent bookshop with a reading table that functions as the neighborhood\'s best quiet work spot. No café — just books, good light, a small table, and a staff that will leave you completely alone. BYOB (bring your own beverage).',
+   hours:'Mon–Sat 11am–7pm · Sun 12–5pm',
+   wifi:'fast',noise:'silent',power:'none',occ:'low',density:'low',
+   access:['free'],vibes:['deep-focus','contemplative','cozy','historic'],amenities:[],occupancy:12,tags:['Independent Bookshop','Silent','BYOB','5th Ave']},
+
+  {id:45, name:'Analog Bar — Uptown',                type:'cafe',    x:46, y:72, neighborhood:'Bankers Hill',
+   address:'3010 5th Ave, Bankers Hill',
+   desc:'A record-shop café hybrid on 5th Ave. Morning hours before 11am are the most productive — quiet, good coffee, ambient vinyl playing at respectful volumes. The afternoon turns social, so come early.',
+   hours:'Daily 8am–10pm',
+   wifi:'fast',noise:'quiet',power:'some',occ:'low',density:'low',
+   access:['free'],vibes:['creative','cozy','social'],amenities:['food'],occupancy:25,tags:['Records','Morning Work','5th Ave','Vinyl Ambient']},
 ];
 
-let activeFilter = 'all';
-let activeSpace  = null;
-let searchQuery  = '';
-let sheetState   = 'peek'; // peek | half | full
-let legendVisible = false;
-let toastTimer;
+// ── STATE ─────────────────────────────────────────────
+let typeFilter='all', activeFilters={}, activeSpace=null, sheetState='peek', sortMode='default', drawerOpen=false, searchQuery='', toastTimer;
 
-function filteredSpaces() {
-  return SPACES.filter(s => {
-    const matchType   = activeFilter === 'all' || s.type === activeFilter;
-    const q = searchQuery.toLowerCase();
-    const matchSearch = !q || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q));
-    return matchType && matchSearch;
-  });
+function passes(s){
+  if(typeFilter!=='all'&&s.type!==typeFilter)return false;
+  if(searchQuery){
+    const q=searchQuery.toLowerCase();
+    if(!s.name.toLowerCase().includes(q)&&!s.neighborhood.toLowerCase().includes(q)&&!s.address.toLowerCase().includes(q)&&!s.tags.some(t=>t.toLowerCase().includes(q)))return false;
+  }
+  for(const[g,vals]of Object.entries(activeFilters)){
+    if(!vals||!vals.size)continue;
+    let ok=false;
+    if(g==='wifi')   ok=vals.has(s.wifi);
+    if(g==='noise')  ok=vals.has(s.noise);
+    if(g==='power')  ok=vals.has(s.power);
+    if(g==='occ')    ok=vals.has(s.occ);
+    if(g==='access') ok=s.access.some(a=>vals.has(a));
+    if(g==='vibe')   ok=s.vibes.some(v=>vals.has(v));
+    if(g==='amenity')ok=s.amenities.some(a=>vals.has(a));
+    if(!ok)return false;
+  }
+  return true;
+}
+function noiseRank(n){return{silent:0,quiet:1,moderate:2,active:3}[n]??2;}
+function lateHour(h){const m=h.match(/(\d+)(am|pm)/g);if(!m)return 0;const l=m[m.length-1];return l.includes('pm')?parseInt(l)+12:parseInt(l);}
+function filtered(){
+  const arr=SPACES.filter(passes);
+  if(sortMode==='quiet')return[...arr].sort((a,b)=>noiseRank(a.noise)-noiseRank(b.noise));
+  if(sortMode==='open') return[...arr].sort((a,b)=>lateHour(b.hours)-lateHour(a.hours));
+  return arr;
 }
 
-// ── PINS ────────────────────────────────────────────
-function renderPins() {
-  const layer = document.getElementById('pins-layer');
-  layer.innerHTML = '';
-  const spaces = filteredSpaces();
-  spaces.forEach(s => {
-    const t = TYPES[s.type];
-    const div = document.createElement('div');
-    div.className = 'pin' + (activeSpace === s.id ? ' active' : '');
-    div.dataset.type = s.type;
-    div.dataset.density = s.density;
-    div.style.left = s.x + '%';
-    div.style.top  = s.y + '%';
-    div.innerHTML = `
-      <div class="pin-body">
-        <div class="pin-drop">
-          <div class="pin-ring"></div>
-          <span class="pin-icon">${t.icon}</span>
-          <div class="pin-occ occ-${s.occ}"></div>
-        </div>
-      </div>
-      <div class="pin-stem"></div>
-      <div class="pin-tooltip">${s.name}<br><span style="opacity:.6;font-size:9px">${t.label} · ${s.occ === 'low' ? 'Usually quiet' : s.occ === 'medium' ? 'Moderate' : 'Often busy'}</span></div>
-    `;
-    div.addEventListener('click', () => selectSpace(s.id));
+function renderPins(){
+  const layer=document.getElementById('pins-layer');layer.innerHTML='';
+  const ids=new Set(filtered().map(s=>s.id));
+  SPACES.forEach(s=>{
+    const t=TYPES[s.type],dim=!ids.has(s.id);
+    const div=document.createElement('div');
+    div.className='pin'+(activeSpace===s.id?' active':'')+(dim?' dimmed':'');
+    div.dataset.type=s.type;div.dataset.density=s.density||'medium';
+    div.style.left=s.x+'%';div.style.top=s.y+'%';
+    div.innerHTML=`<div class="pin-body"><div class="pin-drop"><div class="pin-ring"></div><span class="pin-icon">${t.icon}</span><div class="pin-occ occ-${s.occ}"></div></div></div><div class="pin-stem"></div><div class="pin-tooltip">${s.name}<br><span style="opacity:.6;font-size:8px">${s.neighborhood} · ${NL[s.noise]}</span></div>`;
+    if(!dim)div.addEventListener('click',()=>selectSpace(s.id));
     layer.appendChild(div);
   });
 }
 
-// ── LIST ─────────────────────────────────────────────
-function renderList() {
-  const list   = document.getElementById('sheet-list');
-  const spaces = filteredSpaces();
-  document.getElementById('sheet-count').textContent = spaces.length + ' work & study space' + (spaces.length !== 1 ? 's' : '');
-
-  list.innerHTML = spaces.map(s => {
-    const t = TYPES[s.type];
-    return `
-    <div class="list-item${activeSpace === s.id ? ' active' : ''}" data-id="${s.id}" onclick="selectSpace(${s.id})">
-      <div class="list-icon" style="background:${t.bg}20;border:1px solid ${t.bg}30">${t.icon}</div>
-      <div class="list-body">
-        <div class="list-name">${s.name}</div>
-        <div class="list-sub">${t.label} · ${s.address}</div>
-      </div>
-      <div class="list-right">
-        <span class="list-occ" style="background:${s.occ==='low'?'#4a8c5a':s.occ==='medium'?'#b88c3a':'#8b3a2a'}">${s.occ==='low'?'Quiet':s.occ==='medium'?'Moderate':'Busy'}</span>
-        <span class="list-noise" style="font-size:8px">${s.wifi.includes('No wifi') ? '⚡ No wifi' : '◎ Wifi'}</span>
-      </div>
-    </div>`;
+function renderList(){
+  const fspaces=filtered();
+  const cnt=fspaces.length;
+  document.getElementById('sheet-count').textContent=cnt+' space'+(cnt!==1?'s':'')+' in San Diego';
+  const empty=document.getElementById('empty-state');
+  const list=document.getElementById('sheet-list');
+  if(!cnt){empty.className='visible';list.innerHTML='';return;}
+  empty.className='';
+  list.innerHTML=fspaces.map(s=>{
+    const t=TYPES[s.type];
+    const oc=s.occ==='low'?'#4a8c5a':s.occ==='medium'?'#b88c3a':'#8b3a2a';
+    const attrs=[
+      `<span class="la" style="background:${s.wifi==='none'?'#f5eeea':'#eaf2ec'};color:${s.wifi==='none'?'#7a4a3a':'#2e5c3a'}">${WL[s.wifi]||s.wifi}</span>`,
+      `<span class="la" style="background:#f0ece4;color:#5c4a3a">${NL[s.noise]}</span>`,
+      s.power==='plenty'?`<span class="la" style="background:#eaecf2;color:#2e3f6b">🔌 Power</span>`:'',
+      s.access.includes('free')?`<span class="la" style="background:#eaf0ea;color:#2e5c3a">Free</span>`:s.access.includes('day-pass')?`<span class="la" style="background:#f0ecea;color:#5c3a3a">Day pass</span>`:'',
+    ].filter(Boolean).join('');
+    return`<div class="list-item${activeSpace===s.id?' active':''}" data-id="${s.id}" onclick="selectSpace(${s.id})"><div class="list-icon" style="background:${t.bg}20;border:1px solid ${t.bg}30">${t.icon}</div><div class="list-body"><div class="list-name">${s.name}</div><div class="list-sub">${s.address}</div><div class="list-attrs">${attrs}</div></div><div class="list-right"><span class="list-occ" style="background:${oc}">${OL[s.occ]}</span><span class="list-neighborhood">${s.neighborhood}</span></div></div>`;
   }).join('');
 }
 
-// ── DETAIL ───────────────────────────────────────────
-function renderDetail(s) {
-  if (!s) { document.getElementById('sheet-detail').className = 'sheet-detail'; return; }
-  const t = TYPES[s.type];
-  const pct = s.occupancy;
-  const barColor = pct < 40 ? '#4a8c5a' : pct < 70 ? '#b88c3a' : '#8b3a2a';
-
-  document.getElementById('sheet-detail').innerHTML = `
-    <span class="detail-type-tag" style="background:${t.bg}">${t.icon} ${t.label}</span>
-    <div class="detail-name">${s.name}</div>
-    <div class="detail-address">${s.address}</div>
-    <div class="detail-desc">${s.desc}</div>
-
-    <div class="occ-bar-wrap">
-      <div class="occ-bar-label"><span>Typical occupancy</span><span>${pct}%</span></div>
-      <div class="occ-bar-track"><div class="occ-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
-    </div>
-
-    <div class="detail-meta">
-      <div class="meta-item">
-        <div class="meta-label">Hours</div>
-        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.hours}</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Noise Level</div>
-        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.noise}</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Wifi</div>
-        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.wifi}</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Power</div>
-        <div class="meta-value" style="font-size:9px;line-height:1.4">${s.power}</div>
-      </div>
-    </div>
-
-    <div class="detail-tags">
-      ${s.tags.map(tag => `<span class="detail-tag">${tag}</span>`).join('')}
-    </div>
-
-    <div class="detail-actions">
-      <button class="action-btn" onclick="showToast('Saved ${s.name}')">♡ Save</button>
-      <button class="action-btn" onclick="showToast('Directions to ${s.name}')">↗ Directions</button>
-      <button class="action-btn primary" onclick="showToast('Check-in at ${s.name}')">✦ Check in</button>
-    </div>
-  `;
-  document.getElementById('sheet-detail').className = 'sheet-detail visible';
+function renderDetail(s){
+  const el=document.getElementById('sheet-detail');
+  if(!s){el.className='sheet-detail';return;}
+  const t=TYPES[s.type],pct=s.occupancy,bc=pct<40?'#4a8c5a':pct<70?'#b88c3a':'#8b3a2a';
+  const badges=[
+    {i:'📶',l:WL[s.wifi],  cls:s.wifi==='fast'?'good':s.wifi==='none'?'muted':''},
+    {i:'🔇',l:NL[s.noise], cls:s.noise==='silent'||s.noise==='quiet'?'good':s.noise==='active'?'warn':''},
+    {i:'🔌',l:PL[s.power], cls:s.power==='plenty'?'good':s.power==='none'?'muted':''},
+    ...s.access.map(a=>({i:'🚪',l:PillL[a]||a,cls:a==='free'?'good':''})),
+    ...s.vibes.map(v=>({i:'✦',l:PillL[v]||v,cls:''})),
+  ].map(b=>`<span class="attr-badge ${b.cls}"><span class="ai">${b.i}</span>${b.l}</span>`).join('');
+  el.innerHTML=`<span class="detail-type-tag" style="background:${t.bg}">${t.icon} ${t.label}</span><div class="detail-name">${s.name}</div><div class="detail-address">${s.address}</div><div class="detail-desc">${s.desc}</div><div class="detail-attrs">${badges}</div><div class="occ-bar-wrap"><div class="occ-bar-label"><span>Typical occupancy</span><span>${pct}%</span></div><div class="occ-bar-track"><div class="occ-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div><div class="detail-meta"><div class="meta-item"><div class="meta-label">Hours</div><div class="meta-value">${s.hours}</div></div><div class="meta-item"><div class="meta-label">Neighborhood</div><div class="meta-value">${s.neighborhood}</div></div><div class="meta-item"><div class="meta-label">Noise</div><div class="meta-value">${NL[s.noise]||s.noise}</div></div><div class="meta-item"><div class="meta-label">Wifi</div><div class="meta-value">${WL[s.wifi]||s.wifi}</div></div></div><div class="detail-tags">${s.tags.map(tag=>`<span class="detail-tag">${tag}</span>`).join('')}</div><div class="detail-actions"><button class="action-btn" onclick="showToast('Saved ${s.name}')">♡ Save</button><button class="action-btn" onclick="showToast('Directions to ${s.name}')">↗ Directions</button><button class="action-btn primary" onclick="showToast('Checked in at ${s.name}')">✦ Check in</button></div>`;
+  el.className='sheet-detail visible';
 }
 
-function selectSpace(id) {
-  activeSpace = activeSpace === id ? null : id;
-  const s = SPACES.find(sp => sp.id === id);
-  renderPins();
-  renderList();
-  renderDetail(activeSpace ? s : null);
-  if (activeSpace) {
-    setSheet('half');
-    // scroll list to item
-    setTimeout(() => {
-      const el = document.querySelector(`.list-item[data-id="${id}"]`);
-      if (el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
-    }, 100);
-  }
+function selectSpace(id){
+  activeSpace=activeSpace===id?null:id;
+  const s=SPACES.find(sp=>sp.id===id);
+  renderPins();renderList();renderDetail(activeSpace?s:null);
+  if(activeSpace){setSheet('half');setTimeout(()=>{const el=document.querySelector(`.list-item[data-id="${id}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},100);}
 }
 
-// ── FILTERS ──────────────────────────────────────────
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    activeFilter = chip.dataset.f;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-    chip.classList.add('on');
-    activeSpace = null;
-    renderDetail(null);
-    renderPins();
-    renderList();
+function renderActiveBar(){
+  const bar=document.getElementById('active-bar');
+  const pills=[];
+  for(const[g,vals]of Object.entries(activeFilters)){if(!vals)continue;for(const v of vals)pills.push(`<div class="active-pill" onclick="removeFilter('${g}','${v}')">${PillL[v]||v}<span class="x"> ×</span></div>`);}
+  bar.innerHTML=pills.join('');
+  const n=Object.values(activeFilters).reduce((s,v)=>s+(v?v.size:0),0);
+  const btn=document.getElementById('ftoggle'),badge=document.getElementById('fbadge');
+  if(n>0){btn.classList.add('active');badge.textContent=n;badge.style.display='inline';}
+  else{btn.classList.remove('active');badge.style.display='none';}
+}
+
+function removeFilter(g,v){
+  if(activeFilters[g]){activeFilters[g].delete(v);if(!activeFilters[g].size)delete activeFilters[g];}
+  const p=document.querySelector(`.fpill[data-g="${g}"][data-v="${v}"]`);if(p)p.classList.remove('on');
+  renderAll();
+}
+function clearAll(){activeFilters={};document.querySelectorAll('.fpill.on').forEach(p=>p.classList.remove('on'));renderAll();}
+
+document.querySelectorAll('.fpill').forEach(pill=>{
+  pill.addEventListener('click',()=>{
+    const g=pill.dataset.g,v=pill.dataset.v;
+    if(!activeFilters[g])activeFilters[g]=new Set();
+    if(activeFilters[g].has(v)){activeFilters[g].delete(v);pill.classList.remove('on');if(!activeFilters[g].size)delete activeFilters[g];}
+    else{activeFilters[g].add(v);pill.classList.add('on');}
+    renderAll();
   });
 });
 
-// ── SEARCH ───────────────────────────────────────────
-document.getElementById('search-in').addEventListener('input', e => {
-  searchQuery = e.target.value.trim();
-  renderPins();
-  renderList();
+document.querySelectorAll('#type-strip .chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    typeFilter=chip.dataset.f;
+    document.querySelectorAll('#type-strip .chip').forEach(c=>c.classList.remove('on'));
+    chip.classList.add('on');activeSpace=null;renderDetail(null);renderAll();
+  });
 });
 
-// ── SHEET ────────────────────────────────────────────
-function setSheet(state) {
-  sheetState = state;
-  const sheet = document.getElementById('sheet');
-  sheet.className = state;
-}
+document.getElementById('search-in').addEventListener('input',e=>{searchQuery=e.target.value.trim();renderAll();});
 
-function cycleSheet() {
-  const next = { peek:'half', half:'full', full:'peek' };
-  setSheet(next[sheetState]);
-}
+function setSort(m){sortMode=m;document.querySelectorAll('.sort-btn').forEach(b=>b.classList.toggle('on',b.dataset.sort===m));renderPins();renderList();}
+function toggleDrawer(){drawerOpen?closeDrawer():openDrawer();}
+function openDrawer(){drawerOpen=true;document.getElementById('filter-drawer').classList.add('open');document.getElementById('drawer-scrim').classList.add('visible');}
+function closeDrawer(){drawerOpen=false;document.getElementById('filter-drawer').classList.remove('open');document.getElementById('drawer-scrim').classList.remove('visible');}
+function setSheet(s){sheetState=s;document.getElementById('sheet').className=s;}
+function cycleSheet(){setSheet({peek:'half',half:'full',full:'peek'}[sheetState]);}
+document.getElementById('sheet-handle').addEventListener('click',cycleSheet);
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+function renderAll(){renderPins();renderList();renderActiveBar();}
 
-document.getElementById('sheet-handle').addEventListener('click', cycleSheet);
-
-// ── LEGEND ───────────────────────────────────────────
-function toggleLegend() {
-  legendVisible = !legendVisible;
-  document.getElementById('legend').className = legendVisible ? 'visible' : '';
-}
-
-// ── TOAST ────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// ── BOOT ─────────────────────────────────────────────
-renderPins();
-renderList();
-setTimeout(() => setSheet('peek'), 800);
+renderAll();
+setTimeout(()=>setSheet('peek'),800);
 </script>
+
 </body>
 </html>
